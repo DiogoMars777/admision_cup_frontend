@@ -1,0 +1,49 @@
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: 'http://localhost:8000/api',
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  },
+});
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+export const requisitoService = {
+  // --- Catálogo ---
+  getCatalogo: async () => {
+    const res = await api.get(`/catalogo-requisitos`);
+    return res.data;
+  },
+  createCatalogo: async (data) => {
+    const res = await api.post('/catalogo-requisitos', data);
+    return res.data;
+  },
+  deleteCatalogo: async (id) => {
+    const res = await api.delete(`/catalogo-requisitos/${id}`);
+    return res.data;
+  },
+
+  // --- Enlaces a Postulantes ---
+  getAll: async (search = '') => {
+    const res = await api.get(`/requisitos?search=${search}`);
+    return res.data;
+  },
+  enlazar: async (data) => {
+    const res = await api.post('/requisitos', data);
+    return res.data;
+  },
+  updateEstado: async (id, estado) => {
+    const res = await api.patch(`/requisitos/${id}/estado`, { estado });
+    return res.data;
+  },
+  delete: async (id) => {
+    const res = await api.delete(`/requisitos/${id}`);
+    return res.data;
+  }
+};

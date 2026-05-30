@@ -1,0 +1,11 @@
+import axios from 'axios';
+const api = axios.create({ baseURL: 'http://localhost:8000/api', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' } });
+api.interceptors.request.use((c) => { const t = localStorage.getItem('token'); if (t) c.headers.Authorization = `Bearer ${t}`; return c; });
+
+export const grupoService = {
+  getAll: async (search = '') => (await api.get(`/grupos?search=${search}`)).data,
+  create: async (data) => (await api.post('/grupos', data)).data,
+  update: async (id, data) => (await api.put(`/grupos/${id}`, data)).data,
+  delete: async (id) => (await api.delete(`/grupos/${id}`)).data,
+  getGestiones: async () => (await api.get('/gestiones')).data,
+};
