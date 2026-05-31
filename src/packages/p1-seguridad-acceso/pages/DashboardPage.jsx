@@ -1,130 +1,207 @@
 import { useState, useEffect } from 'react';
-import { Users, FileText, UserCheck, Activity, LogOut } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Users, UserCheck, BookOpen, GraduationCap, UsersRound, School, Activity, ArrowUpRight, Clock } from 'lucide-react';
 import { bitacoraService } from '../services/bitacoraService';
 import { postulanteService } from '../../p2-postulantes/services/postulanteService';
+import { docenteService } from '../../p3-academico/services/docenteService';
+import { grupoService } from '../../p3-academico/services/grupoService';
 
 export default function DashboardPage() {
   const [statsData, setStatsData] = useState({ total_mes: 0, hoy: 0, usuarios_activos: 0 });
   const [postulantesTotal, setPostulantesTotal] = useState(0);
+  const [docentesTotal, setDocentesTotal] = useState(0);
+  const [gruposTotal, setGruposTotal] = useState(0);
+  const [recentLogs, setRecentLogs] = useState([]);
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : {};
   const userName = user?.nombre || 'Usuario';
   const userFirstName = userName.split(' ')[0];
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
+  useEffect(() => { fetchStats(); }, []);
 
   const fetchStats = async () => {
     try {
-      const bStats = await bitacoraService.getStats();
+      const [bStats, pData, logs, dData, gData] = await Promise.all([
+        bitacoraService.getStats(),
+        postulanteService.getAll(''),
+        bitacoraService.getAll({}),
+        docenteService.getAll(''),
+        grupoService.getAll('')
+      ]);
       setStatsData(bStats);
-      
-      const pData = await postulanteService.getAll('');
       setPostulantesTotal(pData.length);
-    } catch (e) {
-      console.error(e);
-    }
+      setRecentLogs(logs.slice(0, 8));
+      setDocentesTotal(dData.length);
+      setGruposTotal(gData.length);
+    } catch (e) { console.error(e); }
   };
 
   const stats = [
-    { name: 'Usuarios Activos', value: statsData.usuarios_activos, icon: Users, color: 'bg-emerald-500' },
-    { name: 'Postulantes', value: postulantesTotal, icon: UserCheck, color: 'bg-blue-500' },
-    { name: 'Grupos (Estático)', value: '12', icon: FileText, color: 'bg-amber-500' },
-    { name: 'Acciones Hoy', value: statsData.hoy, icon: Activity, color: 'bg-purple-500' },
+    { name: 'Usuarios Activos', value: statsData.usuarios_activos, icon: Users, gradient: 'from-blue-600 to-blue-800', light: 'bg-blue-50 text-blue-700', path: '/p1/usuarios' },
+    { name: 'Postulantes', value: postulantesTotal, icon: UserCheck, gradient: 'from-emerald-600 to-emerald-800', light: 'bg-emerald-50 text-emerald-700', path: '/p2/postulantes' },
+    { name: 'Docentes', value: docentesTotal, icon: GraduationCap, gradient: 'from-violet-600 to-violet-800', light: 'bg-violet-50 text-violet-700', path: '/p3/docentes' },
+    { name: 'Grupos', value: gruposTotal, icon: UsersRound, gradient: 'from-amber-500 to-amber-700', light: 'bg-amber-50 text-amber-700', path: '/p3/grupos' },
   ];
+
+  const getActionColor = (accion) => {
+    switch (accion) {
+      case 'Crear': return 'bg-emerald-50 text-emerald-700';
+      case 'Actualizar': return 'bg-blue-50 text-blue-700';
+      case 'Eliminar': return 'bg-red-50 text-red-700';
+      case 'Login': return 'bg-indigo-50 text-indigo-700';
+      case 'Logout': return 'bg-gray-100 text-gray-700';
+      default: return 'bg-gray-50 text-gray-600';
+    }
+  };
 
   return (
     <div className="space-y-6">
-      {/* Alert */}
-      <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-lg flex items-center justify-between">
-        <div className="flex items-center">
-          <div className="bg-emerald-500 rounded-full p-1 mr-3">
-            <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <span className="font-medium">¡Bienvenido al sistema, {userName}!</span>
-        </div>
-        <button className="text-emerald-600 hover:text-emerald-800">
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-
+      {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-800">¡Hola, {userFirstName}! 👋</h2>
-        <p className="text-gray-500 text-sm mt-1">Resumen de tu sistema - {new Date().toLocaleDateString('es-ES', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
+        <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Bienvenido, {userFirstName}</h2>
+        <p className="text-sm text-gray-500 mt-0.5">
+          Resumen general del sistema — {new Date().toLocaleDateString('es-ES', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+        </p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <div key={index} className={`${stat.color} rounded-xl shadow-sm p-6 text-white relative overflow-hidden`}>
-            <div className="flex justify-between items-start">
-              <div>
-                <div className="bg-white/20 rounded-lg p-2 inline-block mb-4">
-                  <stat.icon className="h-6 w-6 text-white" />
-                </div>
-                <p className="text-white/80 text-sm font-medium">{stat.name}</p>
-                <h3 className="text-3xl font-bold mt-1">{stat.value}</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((stat, i) => (
+          <Link to={stat.path} key={i} className="bg-white rounded-xl border border-gray-200/80 p-5 hover:shadow-md transition-shadow group block cursor-pointer">
+            <div className="flex items-center justify-between mb-3">
+              <div className={`p-2.5 rounded-xl ${stat.light}`}>
+                <stat.icon className="h-5 w-5" />
               </div>
-              <span className="bg-white/20 text-xs font-semibold px-2 py-1 rounded">HOY</span>
+              <ArrowUpRight className="h-4 w-4 text-gray-300 group-hover:text-blue-500 transition-colors" />
             </div>
-            {/* Decorative background shape */}
-            <div className="absolute -right-4 -bottom-4 opacity-10">
-              <stat.icon className="h-32 w-32" />
-            </div>
-          </div>
+            <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+            <p className="text-xs font-medium text-gray-500 mt-0.5">{stat.name}</p>
+          </Link>
         ))}
       </div>
 
-      {/* Charts placeholder */}
+      {/* Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl shadow-sm p-6 lg:col-span-2 border border-gray-100">
-          <div className="flex justify-between items-center mb-4">
+        {/* Activity Chart */}
+        <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200/80 p-6">
+          <div className="flex justify-between items-center mb-6">
             <div>
-              <h3 className="text-lg font-bold text-gray-800">Actividad - Últimos 7 días</h3>
-              <p className="text-xs text-gray-500">Evolución de acciones diarias</p>
+              <h3 className="text-sm font-bold text-gray-800">Actividad — Últimos 7 días</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Evolución de acciones diarias</p>
             </div>
-            <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded font-medium flex items-center">
-              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-1 animate-pulse"></span>
-              En tiempo real
+            <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full font-semibold flex items-center gap-1">
+              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+              En vivo
             </span>
           </div>
-          <div className="h-64 flex items-end justify-between space-x-2 pb-6 border-b border-gray-100">
-            {/* Simple CSS bars for mock chart */}
-            {[40, 70, 45, 90, 65, 85, 100].map((h, i) => (
-              <div key={i} className="w-full bg-gray-100 rounded-t-sm relative group">
-                <div className="absolute bottom-0 w-full bg-emerald-400 rounded-t-sm transition-all duration-300 group-hover:bg-emerald-500" style={{ height: `${h}%` }}></div>
+          <div className="h-56 flex items-end justify-between gap-2 pb-4 border-b border-gray-100">
+            {[35, 65, 45, 80, 55, 75, 90].map((h, i) => (
+              <div key={i} className="w-full flex flex-col items-center gap-1">
+                <div className="w-full bg-gray-100 rounded-t-md relative min-h-[4px] group" style={{ height: '100%' }}>
+                  <div 
+                    className="absolute bottom-0 w-full rounded-t-md transition-all duration-500 group-hover:opacity-80"
+                    style={{ height: `${h}%`, background: 'linear-gradient(180deg, #0a4a8e 0%, #1e3a5f 100%)' }}
+                  />
+                </div>
+                <span className="text-[10px] text-gray-400 font-medium">
+                  {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'][i]}
+                </span>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-          <h3 className="text-lg font-bold text-gray-800 mb-6">Distribución por Rol</h3>
+        {/* Quick Stats / Distribution */}
+        <div className="bg-white rounded-xl border border-gray-200/80 p-6">
+          <h3 className="text-sm font-bold text-gray-800 mb-6">Distribución de Usuarios</h3>
+          
+          {/* Simple donut-like visualization */}
           <div className="flex justify-center mb-6">
-            <div className="w-40 h-40 rounded-full border-[16px] border-emerald-400 relative">
-              <div className="absolute inset-[-16px] rounded-full border-[16px] border-blue-500 border-l-transparent border-b-transparent transform rotate-45"></div>
-              <div className="absolute inset-[-16px] rounded-full border-[16px] border-amber-400 border-r-transparent border-t-transparent border-l-transparent transform -rotate-12"></div>
+            <div className="relative w-32 h-32">
+              <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                <circle cx="18" cy="18" r="14" fill="none" stroke="#e5e7eb" strokeWidth="4" />
+                <circle cx="18" cy="18" r="14" fill="none" stroke="#0a4a8e" strokeWidth="4" 
+                  strokeDasharray="55 45" strokeDashoffset="0" strokeLinecap="round" />
+                <circle cx="18" cy="18" r="14" fill="none" stroke="#059669" strokeWidth="4" 
+                  strokeDasharray="25 75" strokeDashoffset="-55" strokeLinecap="round" />
+                <circle cx="18" cy="18" r="14" fill="none" stroke="#d97706" strokeWidth="4" 
+                  strokeDasharray="10 90" strokeDashoffset="-80" strokeLinecap="round" />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center">
+                  <p className="text-xl font-bold text-gray-900">{statsData.usuarios_activos}</p>
+                  <p className="text-[10px] text-gray-400">Total</p>
+                </div>
+              </div>
             </div>
           </div>
+
           <div className="space-y-3">
-            <div className="flex justify-between text-sm">
-              <div className="flex items-center"><span className="w-3 h-3 rounded-full bg-emerald-400 mr-2"></span>Postulantes</div>
-              <span className="font-semibold">65%</span>
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#0a4a8e]" />
+                <span className="text-xs text-gray-600">Administrativos</span>
+              </div>
+              <span className="text-xs font-bold text-gray-800">55%</span>
             </div>
-            <div className="flex justify-between text-sm">
-              <div className="flex items-center"><span className="w-3 h-3 rounded-full bg-blue-500 mr-2"></span>Docentes</div>
-              <span className="font-semibold">25%</span>
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
+                <span className="text-xs text-gray-600">Postulantes</span>
+              </div>
+              <span className="text-xs font-bold text-gray-800">25%</span>
             </div>
-            <div className="flex justify-between text-sm">
-              <div className="flex items-center"><span className="w-3 h-3 rounded-full bg-amber-400 mr-2"></span>Administrativos</div>
-              <span className="font-semibold">10%</span>
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                <span className="text-xs text-gray-600">Docentes</span>
+              </div>
+              <span className="text-xs font-bold text-gray-800">10%</span>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Recent Activity Table */}
+      <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+          <div>
+            <h3 className="text-sm font-bold text-gray-800">Actividad Reciente</h3>
+            <p className="text-xs text-gray-400 mt-0.5">Últimos movimientos registrados en el sistema</p>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gray-50/80 text-xs text-gray-500 uppercase tracking-wider border-b border-gray-100">
+                <th className="px-6 py-3 text-left font-medium">Usuario</th>
+                <th className="px-6 py-3 text-left font-medium">Acción</th>
+                <th className="px-6 py-3 text-left font-medium">Módulo</th>
+                <th className="px-6 py-3 text-left font-medium">Fecha / Hora</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {recentLogs.map((log) => (
+                <tr key={log.id} className="hover:bg-gray-50/50 transition-colors">
+                  <td className="px-6 py-3">
+                    <p className="text-sm font-medium text-gray-800">{log.usuario}</p>
+                  </td>
+                  <td className="px-6 py-3">
+                    <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-semibold ${getActionColor(log.accion)}`}>
+                      {log.accion}
+                    </span>
+                  </td>
+                  <td className="px-6 py-3 text-xs text-gray-500">{log.modulo || '—'}</td>
+                  <td className="px-6 py-3 text-xs text-gray-500">
+                    {log.fecha} <span className="text-gray-300 ml-1">{log.hora}</span>
+                  </td>
+                </tr>
+              ))}
+              {recentLogs.length === 0 && (
+                <tr><td colSpan="4" className="px-6 py-8 text-center text-sm text-gray-400">Sin actividad reciente</td></tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

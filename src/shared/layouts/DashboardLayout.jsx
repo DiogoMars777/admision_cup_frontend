@@ -1,30 +1,20 @@
 import { useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
-  LayoutDashboard, 
-  Users, 
-  FileClock, 
-  UserPlus, 
-  ClipboardList, 
-  BookOpen, 
-  GraduationCap, 
-  UsersRound, 
-  School,
-  Menu,
-  Bell,
-  ChevronDown,
-  ShieldAlert
+  LayoutDashboard, Users, FileClock, UserPlus, ClipboardList, 
+  BookOpen, GraduationCap, UsersRound, School, Menu, Bell,
+  ChevronDown, ShieldAlert, X, ChevronRight
 } from 'lucide-react';
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : { nombre: 'Usuario', email: 'admin@cup.edu.bo' };
-  
   const userName = user?.nombre || 'Usuario';
   const userEmail = user?.email || 'admin@cup.edu.bo';
   const userInitial = userName.charAt(0).toUpperCase();
@@ -32,157 +22,229 @@ export default function DashboardLayout() {
   const userRole = user?.rol || 'Administrador';
 
   const handleLogout = async () => {
-    // Importamos authService dinámicamente para evitar dependencias circulares complejas aquí si las hubiera, o simplemente usamos localStorage
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    
-    // Llamar al endpoint de logout (usando fetch directo para no complicar importaciones si no está a mano)
+    const token = localStorage.getItem('token');
     try {
-      await fetch('http://localhost:8000/api/logout', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Accept': 'application/json'
-        }
-      });
-    } catch(e) {}
-    
-    navigate('/');
+      if (token) {
+        await fetch('http://localhost:8000/api/logout', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+        });
+      }
+    } catch(e) { console.error(e); }
+    finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      navigate('/');
+    }
   };
 
-  const isActive = (path) => location.pathname.includes(path);
+  const isActive = (path) => location.pathname === path || (path !== '/dashboard' && location.pathname.startsWith(path));
 
   const menuItems = [
-    { section: 'DASHBOARD', items: [{ name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' }] },
-    { 
-      section: 'P1 SEGURIDAD', 
-      items: [
-        { name: 'Usuarios', icon: Users, path: '/p1/usuarios' },
-        { name: 'Roles', icon: ShieldAlert, path: '/p1/roles' },
-        { name: 'Bitácora', icon: FileClock, path: '/p1/bitacora' }
-      ] 
-    },
-    { 
-      section: 'P2 POSTULANTES', 
-      items: [
-        { name: 'Registrar Postulante', icon: UserPlus, path: '/p2/postulantes' },
-        { name: 'Requisitos', icon: ClipboardList, path: '/p2/requisitos' }
-      ] 
-    },
-    { 
-      section: 'P3 ACADÉMICO', 
-      items: [
-        { name: 'Materias', icon: BookOpen, path: '/p3/materias' },
-        { name: 'Docentes', icon: GraduationCap, path: '/p3/docentes' },
-        { name: 'Grupos', icon: UsersRound, path: '/p3/grupos' },
-        { name: 'Aulas', icon: School, path: '/p3/aulas' }
-      ] 
-    }
+    { section: 'PANEL', items: [{ name: 'Panel', icon: LayoutDashboard, path: '/dashboard' }] },
+    { section: 'SEGURIDAD', items: [
+      { name: 'Usuarios', icon: Users, path: '/p1/usuarios' },
+      { name: 'Roles', icon: ShieldAlert, path: '/p1/roles' },
+      { name: 'Bitácora', icon: FileClock, path: '/p1/bitacora' }
+    ]},
+    { section: 'POSTULANTES', items: [
+      { name: 'Postulantes', icon: UserPlus, path: '/p2/postulantes' },
+      { name: 'Requisitos', icon: ClipboardList, path: '/p2/requisitos' }
+    ]},
+    { section: 'ACADÉMICO', items: [
+      { name: 'Materias', icon: BookOpen, path: '/p3/materias' },
+      { name: 'Docentes', icon: GraduationCap, path: '/p3/docentes' },
+      { name: 'Grupos', icon: UsersRound, path: '/p3/grupos' },
+      { name: 'Aulas', icon: School, path: '/p3/aulas' }
+    ]}
   ];
 
-  return (
-    <div className="flex h-screen bg-gray-100 font-sans">
-      {/* Sidebar */}
-      <aside className={`bg-[#111827] text-white transition-all duration-300 flex flex-col ${sidebarOpen ? 'w-64' : 'w-20'}`}>
-        <div className="h-16 flex items-center px-4 border-b border-gray-800">
-          <div className="bg-primary p-1.5 rounded-lg mr-3">
-            <GraduationCap className="h-6 w-6 text-white" />
-          </div>
-          {sidebarOpen && (
-            <div>
-              <h1 className="text-sm font-bold leading-tight">Sistema CUP</h1>
-              <p className="text-[10px] text-gray-400">Universidad Autónoma</p>
-            </div>
-          )}
-        </div>
+  // Breadcrumb generation
+  const getBreadcrumbs = () => {
+    const pathMap = {
+      '/dashboard': 'Panel',
+      '/p1/usuarios': 'Usuarios',
+      '/p1/roles': 'Roles',
+      '/p1/bitacora': 'Bitácora',
+      '/p2/postulantes': 'Postulantes',
+      '/p2/requisitos': 'Requisitos',
+      '/p3/materias': 'Materias',
+      '/p3/docentes': 'Docentes',
+      '/p3/grupos': 'Grupos',
+      '/p3/aulas': 'Aulas',
+    };
+    return pathMap[location.pathname] || 'Panel';
+  };
 
-        <div className="flex-1 overflow-y-auto py-4 scrollbar-thin">
-          {menuItems.map((group, idx) => (
-            <div key={idx} className="mb-6">
-              {sidebarOpen && (
-                <p className="px-5 text-xs font-semibold text-gray-500 mb-2 tracking-wider">
-                  {group.section}
-                </p>
-              )}
-              <ul>
-                {group.items.map((item, i) => {
-                  const active = isActive(item.path);
-                  return (
-                    <li key={i}>
-                      <Link
-                        to={item.path}
-                        className={`flex items-center px-5 py-2.5 mx-2 rounded-lg mb-1 transition-colors ${
-                          active ? 'bg-primary text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                        }`}
-                        title={!sidebarOpen ? item.name : ''}
-                      >
-                        <item.icon className={`h-5 w-5 ${sidebarOpen ? 'mr-3' : 'mx-auto'} ${active ? 'text-white' : 'text-gray-400'}`} />
-                        {sidebarOpen && <span className="text-sm font-medium">{item.name}</span>}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
+  const SidebarContent = () => (
+    <>
+      {/* Logo */}
+      <div className="h-16 flex items-center px-4 border-b border-white/10 flex-shrink-0">
+        <div className="bg-white/10 p-2 rounded-lg mr-3">
+          <GraduationCap className="h-5 w-5 text-white" />
         </div>
+        {sidebarOpen && (
+          <div>
+            <h1 className="text-sm font-bold leading-tight text-white">Sistema CUP</h1>
+            <p className="text-[10px] text-blue-300/60">Universidad Autónoma</p>
+          </div>
+        )}
+      </div>
+
+      {/* Menu */}
+      <div className="flex-1 overflow-y-auto py-4">
+        {menuItems.map((group, idx) => (
+          <div key={idx} className="mb-5">
+            {sidebarOpen && (
+              <p className="px-5 text-[10px] font-bold text-blue-300/40 mb-2 tracking-[0.15em] uppercase">
+                {group.section}
+              </p>
+            )}
+            <ul>
+              {group.items.map((item, i) => {
+                const active = isActive(item.path);
+                return (
+                  <li key={i}>
+                    <Link
+                      to={item.path}
+                      onClick={() => setMobileSidebarOpen(false)}
+                      className={`flex items-center px-4 py-2 mx-2 rounded-lg mb-0.5 text-[13px] font-medium transition-all duration-200 ${
+                        active 
+                          ? 'bg-white/15 text-white shadow-sm' 
+                          : 'text-blue-200/70 hover:bg-white/5 hover:text-white'
+                      }`}
+                      title={!sidebarOpen ? item.name : ''}
+                    >
+                      <item.icon className={`h-[18px] w-[18px] ${sidebarOpen ? 'mr-3' : 'mx-auto'} ${active ? 'text-white' : 'text-blue-300/50'}`} />
+                      {sidebarOpen && <span>{item.name}</span>}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      {/* User info at bottom of sidebar */}
+      {sidebarOpen && (
+        <div className="border-t border-white/10 p-4 flex-shrink-0">
+          <div className="flex items-center">
+            <div className="h-8 w-8 rounded-full bg-white/15 flex items-center justify-center text-xs font-bold text-white mr-3">
+              {userInitial}
+            </div>
+            <div className="overflow-hidden">
+              <p className="text-xs font-semibold text-white truncate">{userFirstName}</p>
+              <p className="text-[10px] text-blue-300/50 truncate">{userRole}</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+
+  return (
+    <div className="flex h-screen bg-gray-50 font-sans">
+      {/* Desktop Sidebar */}
+      <aside 
+        className={`hidden lg:flex flex-col transition-all duration-300 flex-shrink-0 ${sidebarOpen ? 'w-60' : 'w-[68px]'}`}
+        style={{ background: 'linear-gradient(180deg, #0f172a 0%, #1e293b 100%)' }}
+      >
+        <SidebarContent />
       </aside>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Navbar */}
-        <header className="h-16 bg-white shadow-sm flex items-center justify-between px-6 z-10">
-          <div className="flex items-center">
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-gray-500 hover:text-gray-700 focus:outline-none">
-              <Menu className="h-6 w-6" />
+      {/* Mobile Sidebar Overlay */}
+      {mobileSidebarOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setMobileSidebarOpen(false)} />
+          <aside 
+            className="relative w-60 flex flex-col"
+            style={{ background: 'linear-gradient(180deg, #0f172a 0%, #1e293b 100%)' }}
+          >
+            <button 
+              onClick={() => setMobileSidebarOpen(false)}
+              className="absolute top-4 right-4 text-white/60 hover:text-white"
+            >
+              <X className="h-5 w-5" />
             </button>
-            <h2 className="ml-4 text-xl font-semibold text-gray-800 hidden sm:block">
-              Panel de Control
-            </h2>
+            <SidebarContent />
+          </aside>
+        </div>
+      )}
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        {/* Navbar */}
+        <header className="h-14 bg-white border-b border-gray-200/80 flex items-center justify-between px-4 lg:px-6 z-10 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            {/* Mobile menu button */}
+            <button 
+              onClick={() => setMobileSidebarOpen(true)} 
+              className="lg:hidden text-gray-500 hover:text-gray-700 p-1"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            {/* Desktop collapse button */}
+            <button 
+              onClick={() => setSidebarOpen(!sidebarOpen)} 
+              className="hidden lg:block text-gray-400 hover:text-gray-600 p-1 rounded-md hover:bg-gray-100"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            {/* Breadcrumb */}
+            <div className="hidden sm:flex items-center text-sm text-gray-400 gap-1.5">
+              <span>Panel</span>
+              <ChevronRight className="h-3.5 w-3.5" />
+              <span className="text-gray-700 font-medium">{getBreadcrumbs()}</span>
+            </div>
           </div>
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-500 hidden md:block">
+
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-gray-400 hidden md:block">
               {new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </span>
-            <button className="text-gray-400 hover:text-gray-600 relative">
-              <Bell className="h-6 w-6" />
-              <span className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full"></span>
+            <button className="text-gray-400 hover:text-gray-600 relative p-1.5 rounded-md hover:bg-gray-100">
+              <Bell className="h-5 w-5" />
+              <span className="absolute top-1 right-1 h-1.5 w-1.5 bg-red-500 rounded-full" />
             </button>
             <div className="relative">
-              <div 
-                className="flex items-center cursor-pointer border-l pl-4 ml-2 hover:bg-gray-50 p-1 rounded"
+              <button 
+                className="flex items-center gap-2 pl-3 border-l border-gray-200 hover:bg-gray-50 py-1 px-2 rounded-lg transition-colors"
                 onClick={() => setDropdownOpen(!dropdownOpen)}
               >
-                <div className="bg-primary text-white rounded-full h-8 w-8 flex items-center justify-center font-bold text-sm mr-2">
+                <div className="h-8 w-8 rounded-full flex items-center justify-center font-bold text-xs text-white" style={{ background: 'linear-gradient(135deg, #0f172a, #0a4a8e)' }}>
                   {userInitial}
                 </div>
-                <div className="hidden sm:block">
+                <div className="hidden sm:block text-left">
                   <p className="text-sm font-semibold text-gray-700 leading-tight">{userFirstName}</p>
-                  <p className="text-[10px] text-gray-500">{userRole}</p>
+                  <p className="text-[10px] text-gray-400">{userRole}</p>
                 </div>
-                <ChevronDown className="h-4 w-4 text-gray-500 ml-2" />
-              </div>
+                <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
+              </button>
               
               {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-100 py-1 z-50">
-                  <div className="px-4 py-2 border-b border-gray-100">
-                    <p className="text-sm font-medium text-gray-800">{userName}</p>
-                    <p className="text-xs text-gray-500 truncate">{userEmail}</p>
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setDropdownOpen(false)} />
+                  <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <p className="text-sm font-semibold text-gray-800">{userName}</p>
+                      <p className="text-xs text-gray-400 truncate">{userEmail}</p>
+                    </div>
+                    <button 
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
+                    >
+                      Cerrar Sesión
+                    </button>
                   </div>
-                  <button 
-                    onClick={handleLogout}
-                    className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50"
-                  >
-                    Cerrar Sesión
-                  </button>
-                </div>
+                </>
               )}
             </div>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-4 lg:p-6">
           <Outlet />
         </main>
       </div>

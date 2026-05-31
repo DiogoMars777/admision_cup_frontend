@@ -7,6 +7,7 @@ export default function UsuariosPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('Administrativo');
   
   // Estados para Modal
   const [showModal, setShowModal] = useState(false);
@@ -106,6 +107,28 @@ export default function UsuariosPage() {
         </button>
       </div>
 
+      {/* Pestañas de filtrado por Rol */}
+      <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-fit">
+        <button 
+          onClick={() => setActiveTab('Administrativo')}
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'Administrativo' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          Administrativo
+        </button>
+        <button 
+          onClick={() => setActiveTab('Postulantes')}
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'Postulantes' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          Postulantes
+        </button>
+        <button 
+          onClick={() => setActiveTab('Docentes')}
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'Docentes' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          Docentes
+        </button>
+      </div>
+
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row justify-between gap-4">
           <div className="relative w-full sm:w-96">
@@ -130,7 +153,11 @@ export default function UsuariosPage() {
           <div className="p-8 text-center text-gray-500">Cargando usuarios...</div>
         ) : (
           <UsuarioTable 
-            usuarios={usuarios} 
+            usuarios={usuarios.filter(u => {
+              if (activeTab === 'Postulantes') return u.rol === 'Postulante';
+              if (activeTab === 'Docentes') return u.rol === 'Docente';
+              return u.rol !== 'Postulante' && u.rol !== 'Docente';
+            })} 
             searchTerm={searchTerm} 
             onToggleStatus={handleToggleStatus}
             onDelete={handleDelete}

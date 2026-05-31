@@ -9,10 +9,14 @@ export default function ListaPostulantesPage() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Modal para editar
+  // Modal para crear y editar
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ nombre: '', fecha_nac: '', sexo: '', telefono: '', direccion: '', colegio: '' });
+  
+  // Estado del formulario
+  const [form, setForm] = useState({ 
+    ci: '', nombre: '', email: '', fecha_nac: '', sexo: '', telefono: '', direccion: '', colegio: '' 
+  });
 
   useEffect(() => {
     fetchPostulantes();
@@ -40,10 +44,18 @@ export default function ListaPostulantesPage() {
     }
   };
 
+  const openCreate = () => {
+    setEditing(null);
+    setForm({ ci: '', nombre: '', email: '', fecha_nac: '', sexo: '', telefono: '', direccion: '', colegio: '' });
+    setShowModal(true);
+  };
+
   const openEdit = (postulante) => {
     setEditing(postulante);
     setForm({
+      ci: postulante.ci || '',
       nombre: postulante.nombre,
+      email: postulante.email || '',
       fecha_nac: postulante.fecha_nac || '',
       sexo: postulante.sexo || '',
       telefono: postulante.telefono || '',
@@ -53,14 +65,18 @@ export default function ListaPostulantesPage() {
     setShowModal(true);
   };
 
-  const handleUpdate = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await postulanteService.update(editing.id, form);
+      if (editing) {
+        await postulanteService.update(editing.id, form);
+      } else {
+        await postulanteService.create(form);
+      }
       setShowModal(false);
       fetchPostulantes();
     } catch (error) {
-      alert("Error al actualizar postulante");
+      alert(error.response?.data?.message || "Error al procesar la solicitud");
     }
   };
 
@@ -72,7 +88,7 @@ export default function ListaPostulantesPage() {
           <p className="text-sm text-gray-500">Lista completa de estudiantes postulados al sistema.</p>
         </div>
         <button 
-          onClick={() => navigate('/p2/postulantes/nuevo')}
+          onClick={openCreate}
           className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-lg flex items-center shadow-sm transition-colors text-sm font-medium"
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -158,23 +174,35 @@ export default function ListaPostulantesPage() {
         )}
       </div>
 
-      {/* Modal Editar */}
+      {/* Modal Crear / Editar */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Editar Postulante</h3>
-            <form onSubmit={handleUpdate} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full p-6">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">{editing ? 'Editar Postulante' : 'Registrar Nuevo Postulante'}</h3>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Carnet de Identidad (CI)</label>
+                  <input required disabled={!!editing} className="w-full border-gray-300 rounded-lg px-3 py-2 border sm:text-sm disabled:bg-gray-100" placeholder="Ej. 12345678" value={form.ci} onChange={e => setForm({...form, ci: e.target.value})} />
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
-                  <input required className="w-full border-gray-300 rounded-lg px-3 py-2 border sm:text-sm" value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})} />
+                  <input required className="w-full border-gray-300 rounded-lg px-3 py-2 border sm:text-sm" placeholder="Nombres y Apellidos" value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})} />
                 </div>
+              </div>
+
+              {!editing && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico (Para creación de cuenta auto)</label>
+                  <input required type="email" className="w-full border-gray-300 rounded-lg px-3 py-2 border sm:text-sm" placeholder="ejemplo@correo.com" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Nacimiento</label>
                   <input type="date" className="w-full border-gray-300 rounded-lg px-3 py-2 border sm:text-sm" value={form.fecha_nac} onChange={e => setForm({...form, fecha_nac: e.target.value})} />
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Sexo</label>
                   <select className="w-full border-gray-300 rounded-lg px-3 py-2 border sm:text-sm" value={form.sexo} onChange={e => setForm({...form, sexo: e.target.value})}>
@@ -183,21 +211,24 @@ export default function ListaPostulantesPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-                  <input className="w-full border-gray-300 rounded-lg px-3 py-2 border sm:text-sm" value={form.telefono} onChange={e => setForm({...form, telefono: e.target.value})} />
+                  <input className="w-full border-gray-300 rounded-lg px-3 py-2 border sm:text-sm" placeholder="Ej. 70000000" value={form.telefono} onChange={e => setForm({...form, telefono: e.target.value})} />
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Colegio</label>
-                <input className="w-full border-gray-300 rounded-lg px-3 py-2 border sm:text-sm" value={form.colegio} onChange={e => setForm({...form, colegio: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
-                <input className="w-full border-gray-300 rounded-lg px-3 py-2 border sm:text-sm" value={form.direccion} onChange={e => setForm({...form, direccion: e.target.value})} />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Colegio de Egreso</label>
+                  <input className="w-full border-gray-300 rounded-lg px-3 py-2 border sm:text-sm" placeholder="Nombre del Colegio" value={form.colegio} onChange={e => setForm({...form, colegio: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Dirección de Domicilio</label>
+                  <input className="w-full border-gray-300 rounded-lg px-3 py-2 border sm:text-sm" placeholder="Barrio, Calle, Número" value={form.direccion} onChange={e => setForm({...form, direccion: e.target.value})} />
+                </div>
               </div>
               
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100 mt-2">
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg">Cancelar</button>
-                <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary-dark rounded-lg">Actualizar</button>
+                <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary-dark rounded-lg">{editing ? 'Actualizar' : 'Guardar'}</button>
               </div>
             </form>
           </div>

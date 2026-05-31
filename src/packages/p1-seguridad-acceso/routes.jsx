@@ -14,7 +14,6 @@ import RolesPage from './pages/RolesPage';
 
 // P2
 import ListaPostulantesPage from '../p2-postulantes/pages/ListaPostulantesPage';
-import RegistrarPostulantePage from '../p2-postulantes/pages/RegistrarPostulantePage';
 import RequisitosPage from '../p2-postulantes/pages/RequisitosPage';
 
 // P3
@@ -40,7 +39,6 @@ export default function SeguridadAccesoRoutes() {
         <Route path="/p1/bitacora" element={<BitacoraPage />} />
         {/* P2 */}
         <Route path="/p2/postulantes" element={<ListaPostulantesPage />} />
-        <Route path="/p2/postulantes/nuevo" element={<RegistrarPostulantePage />} />
         <Route path="/p2/requisitos" element={<RequisitosPage />} />
         {/* P3 */}
         <Route path="/p3/materias" element={<MateriasPage />} />

@@ -24,6 +24,10 @@ export const requisitoService = {
     const res = await api.post('/catalogo-requisitos', data);
     return res.data;
   },
+  updateCatalogo: async (id, data) => {
+    const res = await api.put(`/catalogo-requisitos/${id}`, data);
+    return res.data;
+  },
   deleteCatalogo: async (id) => {
     const res = await api.delete(`/catalogo-requisitos/${id}`);
     return res.data;
