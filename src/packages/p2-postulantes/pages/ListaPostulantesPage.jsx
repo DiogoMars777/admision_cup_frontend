@@ -51,7 +51,11 @@ export default function ListaPostulantesPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ ci: '', nombre: '', email: '', fecha_nac: '', sexo: '', telefono: '', direccion: '', colegio: '' });
+    setForm({ 
+      ci: '', nombre: '', email: '', fecha_nac: '', sexo: '', telefono: '', direccion: '', colegio: '',
+      carrera1: '', modalidad1: '', carrera2: '', modalidad2: '', turno: 'Mañana', modalidad_preferida: 'Presencial'
+    });
+    setShowCarrera2(false);
     setShowModal(true);
   };
 
@@ -70,7 +74,7 @@ export default function ListaPostulantesPage() {
       modalidad1: postulante.modalidad1 || '',
       carrera2: postulante.carrera2 || '',
       modalidad2: postulante.modalidad2 || '',
-      turno: postulante.turno || 'Mañana',
+      turno: postulante.turno_preferido || 'Mañana',
       modalidad_preferida: postulante.modalidad_preferida || 'Presencial'
     });
     setShowCarrera2(!!postulante.carrera2);
