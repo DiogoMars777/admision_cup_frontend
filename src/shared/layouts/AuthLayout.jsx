@@ -1,13 +1,31 @@
+import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { GraduationCap, Shield } from 'lucide-react';
+import { GraduationCap, Shield, FileText } from 'lucide-react';
+import PublicPostulacionModal from '../components/PublicPostulacionModal';
 
 export default function AuthLayout() {
+  const [showPublicModal, setShowPublicModal] = useState(false);
+
   return (
     <div className="min-h-screen flex">
-      {/* Panel izquierdo decorativo */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden" style={{
         background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0a4a8e 100%)'
       }}>
+        {/* Botón flotante para el formulario público (Desktop, en panel izquierdo) */}
+        <div className="absolute top-6 right-6 z-50">
+          <button 
+            onClick={() => setShowPublicModal(true)}
+            className="flex flex-col items-center justify-center p-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg hover:shadow-xl hover:bg-white/20 hover:border-white/40 transition-all group"
+            title="Formulario de Postulación"
+          >
+            <div className="bg-white/20 text-white p-2 rounded-full mb-1 group-hover:scale-110 transition-transform">
+              <FileText className="w-6 h-6" />
+            </div>
+            <span className="text-xs font-bold text-white tracking-wide">Formulario de</span>
+            <span className="text-xs font-bold text-white tracking-wide">Postulación</span>
+          </button>
+        </div>
+
         {/* Patrón de fondo sutil */}
         <div className="absolute inset-0 opacity-10"
           style={{
@@ -62,7 +80,19 @@ export default function AuthLayout() {
       </div>
 
       {/* Panel derecho con formulario */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center bg-gray-50 p-6 sm:p-8">
+      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center bg-gray-50 p-6 sm:p-8 relative">
+        
+        {/* Botón para mobile (cuando el panel izquierdo no se ve) */}
+        <div className="lg:hidden absolute top-4 right-4 z-50">
+          <button 
+            onClick={() => setShowPublicModal(true)}
+            className="flex items-center gap-2 px-3 py-2 bg-white border border-blue-200 rounded-lg shadow-sm hover:bg-blue-50 transition-colors"
+          >
+            <FileText className="w-4 h-4 text-blue-600" />
+            <span className="text-xs font-bold text-blue-900">Postulación</span>
+          </button>
+        </div>
+
         <div className="w-full max-w-md">
           {/* Logo visible solo en mobile */}
           <div className="lg:hidden flex flex-col items-center mb-8">
@@ -84,6 +114,12 @@ export default function AuthLayout() {
           </p>
         </div>
       </div>
+
+      {/* Modal de Postulación Pública */}
+      <PublicPostulacionModal 
+        isOpen={showPublicModal} 
+        onClose={() => setShowPublicModal(false)} 
+      />
     </div>
   );
 }

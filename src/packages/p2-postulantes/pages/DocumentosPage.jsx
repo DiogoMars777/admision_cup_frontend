@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Search, Filter, ChevronRight, CheckCircle2, AlertCircle, X, ShieldCheck, User as UserIcon, GraduationCap, Building } from 'lucide-react';
+import { Search, Filter, ChevronRight, CheckCircle2, X, ShieldCheck, User as UserIcon, Building, Edit } from 'lucide-react';
 import { postulanteService } from '../services/postulanteService';
 import { requisitoService } from '../services/requisitoService';
 
@@ -8,25 +8,22 @@ export default function DocumentosPage() {
   const [postulantes, setPostulantes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // Modal state
   const [selectedPostulante, setSelectedPostulante] = useState(null);
   const [saving, setSaving] = useState(false);
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   const location = useLocation();
   const autoOpenId = location.state?.autoOpenPostulanteId;
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
   useEffect(() => {
     if (!loading && postulantes.length > 0 && autoOpenId && !hasAutoOpened) {
       const pToOpen = postulantes.find(p => p.id === autoOpenId);
       if (pToOpen) {
         handleOpenModal(pToOpen);
-        setHasAutoOpened(true); // Prevenir que se vuelva a abrir si cierras el modal
+        setHasAutoOpened(true);
       }
     }
   }, [loading, postulantes, autoOpenId, hasAutoOpened]);
@@ -38,29 +35,21 @@ export default function DocumentosPage() {
         postulanteService.getAll(),
         requisitoService.getAll()
       ]);
-
       const mapped = postulantesData.map((p) => {
-        // Encontrar los requisitos que tiene este postulante
         const reqs = requisitosData.filter(r => r.id_postulante === p.id);
-        
-        // Mapear los datos que vienen del backend
         const docs = reqs.map(r => ({
           ...r,
           entregado: r.estado === 'Entregado' || r.estado === 'Validado',
           observacion: r.observacion || ''
         }));
-
         const entregados = docs.filter(d => d.entregado).length;
         const total = docs.length;
         const porcentaje = total > 0 ? Math.round((entregados / total) * 100) : 0;
-        
         let estado = 'Pendiente';
         if (total > 0 && entregados === total) estado = 'Completo';
         else if (entregados > 0) estado = 'Parcial';
-
         return { ...p, documentos: docs, progress: { entregados, total, porcentaje, estado } };
       });
-
       setPostulantes(mapped);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -79,40 +68,37 @@ export default function DocumentosPage() {
   };
 
   const getProgressColor = (porcentaje) => {
-    if (porcentaje === 100) return '#22c55e'; // green-500
-    if (porcentaje > 0) return '#f59e0b'; // amber-500
-    return '#ef4444'; // red-500
+    if (porcentaje === 100) return '#22c55e';
+    if (porcentaje > 0) return '#f59e0b';
+    return '#ef4444';
   };
 
-  // Stats calculation
   const total = postulantes.length;
   const completos = postulantes.filter(p => p.progress.estado === 'Completo').length;
   const parciales = postulantes.filter(p => p.progress.estado === 'Parcial').length;
   const pendientes = postulantes.filter(p => p.progress.estado === 'Pendiente').length;
 
-  const filteredData = postulantes.filter(p => 
-    p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const filteredData = postulantes.filter(p =>
+    p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.ci.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (p.colegio && p.colegio.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const handleOpenModal = (postulante) => {
     setSelectedPostulante(JSON.parse(JSON.stringify(postulante)));
+    setIsEditing(postulante.progress.estado !== 'Completo');
   };
 
   const handleDocChange = (index, field, value) => {
     const updated = { ...selectedPostulante };
     updated.documentos[index][field] = value;
-    
     const entregados = updated.documentos.filter(d => d.entregado).length;
     const porcentaje = updated.documentos.length > 0 ? Math.round((entregados / updated.documentos.length) * 100) : 0;
-    
     updated.progress.entregados = entregados;
     updated.progress.porcentaje = porcentaje;
     if (updated.documentos.length > 0 && entregados === updated.documentos.length) updated.progress.estado = 'Completo';
     else if (entregados > 0) updated.progress.estado = 'Parcial';
     else updated.progress.estado = 'Pendiente';
-
     setSelectedPostulante(updated);
   };
 
@@ -120,28 +106,23 @@ export default function DocumentosPage() {
     setSaving(true);
     try {
       const postulanteToSave = { ...selectedPostulante };
-      
       if (markComplete) {
         postulanteToSave.documentos.forEach(d => d.entregado = true);
         postulanteToSave.progress.entregados = postulanteToSave.documentos.length;
         postulanteToSave.progress.porcentaje = 100;
         postulanteToSave.progress.estado = 'Completo';
       }
-
-      // Guardar cada documento actualizado en el backend
       const promises = postulanteToSave.documentos.map(doc => {
         const estadoFinal = doc.entregado ? 'Entregado' : 'Pendiente';
         return requisitoService.updateEstado(doc.id, estadoFinal, doc.observacion);
       });
-      
       await Promise.all(promises);
-      
-      // Actualizar el estado global de la tabla sin necesidad de hacer refetch
       setPostulantes(prev => prev.map(p => p.id === postulanteToSave.id ? postulanteToSave : p));
-      setSelectedPostulante(null);
+      setSelectedPostulante(postulanteToSave);
+      setIsEditing(postulanteToSave.progress.estado !== 'Completo');
     } catch (error) {
-       console.error("Error al guardar las validaciones:", error);
-       alert("Error al guardar cambios. Por favor intente nuevamente.");
+      console.error('Error al guardar las validaciones:', error);
+      alert('Error al guardar cambios. Por favor intente nuevamente.');
     } finally {
       setSaving(false);
     }
@@ -203,11 +184,6 @@ export default function DocumentosPage() {
             />
           </div>
           <div className="flex gap-2">
-            <select className="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 text-sm text-gray-600 focus:ring-primary focus:border-primary hidden sm:block">
-              <option value="">Todas las Carreras</option>
-              <option value="sistemas">Ing. Sistemas</option>
-              <option value="informatica">Ing. Informática</option>
-            </select>
             <button className="flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
               <Filter className="h-4 w-4 mr-2" />
               Más Filtros
@@ -217,8 +193,8 @@ export default function DocumentosPage() {
 
         {loading ? (
           <div className="p-12 text-center flex flex-col items-center">
-             <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-             <p className="text-gray-500">Cargando postulantes y documentos...</p>
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-gray-500">Cargando postulantes y documentos...</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -234,8 +210,8 @@ export default function DocumentosPage() {
                 {filteredData.map((p) => {
                   const initial = p.nombre.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
                   return (
-                    <tr 
-                      key={p.id} 
+                    <tr
+                      key={p.id}
                       onClick={() => handleOpenModal(p)}
                       className="hover:bg-blue-50/50 transition-colors cursor-pointer group"
                     >
@@ -253,18 +229,17 @@ export default function DocumentosPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          {/* SVG Circular Progress */}
                           <div className="relative w-12 h-12">
                             <svg className="w-12 h-12 transform -rotate-90">
                               <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-gray-100" />
-                              <circle 
-                                cx="24" cy="24" r="20" 
-                                stroke={getProgressColor(p.progress.porcentaje)} 
-                                strokeWidth="4" 
-                                fill="transparent" 
-                                strokeDasharray={20 * 2 * Math.PI} 
-                                strokeDashoffset={(20 * 2 * Math.PI) - ((p.progress.porcentaje / 100) * (20 * 2 * Math.PI))} 
-                                strokeLinecap="round" 
+                              <circle
+                                cx="24" cy="24" r="20"
+                                stroke={getProgressColor(p.progress.porcentaje)}
+                                strokeWidth="4"
+                                fill="transparent"
+                                strokeDasharray={20 * 2 * Math.PI}
+                                strokeDashoffset={(20 * 2 * Math.PI) - ((p.progress.porcentaje / 100) * (20 * 2 * Math.PI))}
+                                strokeLinecap="round"
                                 className="transition-all duration-1000 ease-out"
                               />
                             </svg>
@@ -305,8 +280,8 @@ export default function DocumentosPage() {
       {/* Validation Modal */}
       {selectedPostulante && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 sm:p-6 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-full flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-full flex flex-col overflow-hidden">
+
             {/* Header */}
             <div className="flex items-start justify-between p-6 border-b border-gray-100 bg-white sticky top-0 z-10">
               <div className="flex items-center gap-4">
@@ -317,12 +292,11 @@ export default function DocumentosPage() {
                   <h2 className="text-2xl font-bold text-gray-800 tracking-tight">{selectedPostulante.nombre}</h2>
                   <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-gray-500 font-medium">
                     <span className="flex items-center gap-1.5"><UserIcon className="h-4 w-4 text-gray-400" /> CI: {selectedPostulante.ci}</span>
-                    <span className="flex items-center gap-1.5"><GraduationCap className="h-4 w-4 text-gray-400" /> Carrera: Indefinida</span>
-                    <span className="flex items-center gap-1.5"><Building className="h-4 w-4 text-gray-400" /> Colegio: {selectedPostulante.colegio || 'N/A'}</span>
+                    <span className="flex items-center gap-1.5"><Building className="h-4 w-4 text-gray-400" /> {selectedPostulante.colegio || 'Sin colegio'}</span>
                   </div>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setSelectedPostulante(null)}
                 className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
                 disabled={saving}
@@ -333,7 +307,7 @@ export default function DocumentosPage() {
 
             {/* Body */}
             <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
-              
+
               {/* Summary Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
                 <div>
@@ -342,14 +316,14 @@ export default function DocumentosPage() {
                     <div className="relative w-20 h-20">
                       <svg className="w-20 h-20 transform -rotate-90">
                         <circle cx="40" cy="40" r="36" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-gray-100" />
-                        <circle 
-                          cx="40" cy="40" r="36" 
-                          stroke={getProgressColor(selectedPostulante.progress.porcentaje)} 
-                          strokeWidth="6" 
-                          fill="transparent" 
-                          strokeDasharray={36 * 2 * Math.PI} 
-                          strokeDashoffset={(36 * 2 * Math.PI) - ((selectedPostulante.progress.porcentaje / 100) * (36 * 2 * Math.PI))} 
-                          strokeLinecap="round" 
+                        <circle
+                          cx="40" cy="40" r="36"
+                          stroke={getProgressColor(selectedPostulante.progress.porcentaje)}
+                          strokeWidth="6"
+                          fill="transparent"
+                          strokeDasharray={36 * 2 * Math.PI}
+                          strokeDashoffset={(36 * 2 * Math.PI) - ((selectedPostulante.progress.porcentaje / 100) * (36 * 2 * Math.PI))}
+                          strokeLinecap="round"
                           className="transition-all duration-1000 ease-out"
                         />
                       </svg>
@@ -370,9 +344,9 @@ export default function DocumentosPage() {
                       {selectedPostulante.progress.estado}
                     </span>
                     {selectedPostulante.progress.estado === 'Completo' && (
-                      <div className="flex items-center gap-2 text-sm font-medium text-green-700 bg-green-50/50 p-3 rounded-xl border border-green-100">
-                        <CheckCircle2 className="h-5 w-5 text-green-500" />
-                        Postulante habilitado para continuar
+                      <div className="flex items-center gap-2 text-sm font-medium text-green-700 bg-green-50 p-3 rounded-xl border border-green-100">
+                        <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
+                        ¡Documentación completa! Ve a la sección <strong className="ml-1">Pagos</strong> para procesar su matrícula.
                       </div>
                     )}
                   </div>
@@ -403,18 +377,18 @@ export default function DocumentosPage() {
                             <p className="text-[10px] text-gray-400 mt-0.5">{doc.descripcion}</p>
                           </div>
                         </div>
-                        
+
                         <div className="flex sm:justify-center pt-2">
                           <label className="flex items-center cursor-pointer group">
                             <div className="relative flex items-center">
-                              <input 
-                                type="checkbox" 
+                              <input
+                                type="checkbox"
                                 className="sr-only"
                                 checked={doc.entregado}
                                 onChange={(e) => handleDocChange(idx, 'entregado', e.target.checked)}
-                                disabled={saving}
+                                disabled={saving || !isEditing}
                               />
-                              <div className={`w-5 h-5 rounded border ${doc.entregado ? 'bg-green-500 border-green-500' : 'border-gray-300 bg-white group-hover:border-gray-400'} flex items-center justify-center transition-colors`}>
+                              <div className={`w-5 h-5 rounded border ${doc.entregado ? 'bg-green-500 border-green-500' : 'border-gray-300 bg-white group-hover:border-gray-400'} flex items-center justify-center transition-colors ${!isEditing ? 'opacity-50 cursor-not-allowed' : ''}`}>
                                 {doc.entregado && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
                               </div>
                             </div>
@@ -427,12 +401,12 @@ export default function DocumentosPage() {
                         <div>
                           <div className="relative">
                             <textarea
-                              className="w-full h-16 resize-none rounded-lg border border-gray-200 p-3 text-sm text-gray-700 focus:ring-primary focus:border-primary transition-colors bg-gray-50 focus:bg-white"
+                              className={`w-full h-16 resize-none rounded-lg border border-gray-200 p-3 text-sm transition-colors bg-gray-50 focus:bg-white ${!isEditing ? 'opacity-70 cursor-not-allowed text-gray-500' : 'text-gray-700 focus:ring-primary focus:border-primary'}`}
                               placeholder="Añadir observación..."
                               value={doc.observacion}
                               onChange={(e) => handleDocChange(idx, 'observacion', e.target.value)}
                               maxLength={200}
-                              disabled={saving}
+                              disabled={saving || !isEditing}
                             ></textarea>
                             <span className="absolute bottom-2 right-2 text-[10px] text-gray-400 font-medium">
                               {doc.observacion.length}/200
@@ -444,48 +418,56 @@ export default function DocumentosPage() {
                   )}
                 </div>
               </div>
-
             </div>
 
             {/* Footer */}
             <div className="p-5 border-t border-gray-100 bg-white flex flex-col sm:flex-row items-center justify-between gap-4 sticky bottom-0">
-              <button 
+              <button
                 onClick={() => setSelectedPostulante(null)}
                 className="w-full sm:w-auto px-6 py-2.5 text-sm font-bold text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
                 disabled={saving}
               >
-                Cancelar
+                Cerrar
               </button>
-              
+
               <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                <button 
-                  onClick={() => handleSave(false)}
-                  disabled={saving || selectedPostulante.documentos.length === 0}
-                  className="w-full sm:w-auto px-6 py-2.5 text-sm font-bold text-white bg-primary rounded-xl hover:bg-primary-dark transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {saving ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  ) : (
-                    <ShieldCheck className="w-4 h-4" />
-                  )}
-                  {saving ? 'Guardando...' : 'Guardar Validación'}
-                </button>
-                
-                <button 
-                  onClick={() => handleSave(true)}
-                  disabled={saving || selectedPostulante.progress.estado === 'Completo' || selectedPostulante.documentos.length === 0}
-                  className={`w-full sm:w-auto px-6 py-2.5 text-sm font-bold text-white rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2 ${
-                    selectedPostulante.progress.estado === 'Completo' 
-                      ? 'bg-green-500 cursor-default opacity-60' 
-                      : 'bg-green-600 hover:bg-green-700 disabled:opacity-50'
-                  }`}
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  Marcar como Completo
-                </button>
+                {!isEditing ? (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="w-full sm:w-auto px-6 py-2.5 text-sm font-bold text-primary border border-primary rounded-xl hover:bg-primary/5 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Edit className="w-4 h-4" />
+                    Editar Validación
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => handleSave(false)}
+                      disabled={saving || selectedPostulante.documentos.length === 0}
+                      className="w-full sm:w-auto px-6 py-2.5 text-sm font-bold text-white bg-primary rounded-xl hover:bg-primary-dark transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {saving
+                        ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        : <ShieldCheck className="w-4 h-4" />
+                      }
+                      {saving ? 'Guardando...' : 'Guardar Validación'}
+                    </button>
+
+                    {selectedPostulante.progress.estado !== 'Completo' && (
+                      <button
+                        onClick={() => handleSave(true)}
+                        disabled={saving || selectedPostulante.documentos.length === 0}
+                        className="w-full sm:w-auto px-6 py-2.5 text-sm font-bold text-white bg-green-600 hover:bg-green-700 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        Marcar todo completo
+                      </button>
+                    )}
+                  </>
+                )}
               </div>
             </div>
-            
+
           </div>
         </div>
       )}
