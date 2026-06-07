@@ -33,6 +33,16 @@ export const requisitoService = {
     return res.data;
   },
 
+  // --- Asignaciones a Materias ---
+  getMateriaRequisitos: async (materiaId) => {
+    const res = await api.get(`/materias/${materiaId}/requisitos`);
+    return res.data;
+  },
+  syncMateriaRequisitos: async (materiaId, asignaciones) => {
+    const res = await api.post(`/materias/${materiaId}/requisitos`, { asignaciones });
+    return res.data;
+  },
+
   // --- Enlaces a Postulantes ---
   getAll: async (search = '') => {
     const res = await api.get(`/requisitos?search=${search}`);
