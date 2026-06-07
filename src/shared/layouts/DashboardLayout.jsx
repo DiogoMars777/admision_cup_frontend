@@ -49,6 +49,7 @@ export default function DashboardLayout() {
     ]},
     { section: 'POSTULANTES', items: [
       { name: 'Postulantes', icon: UserPlus, path: '/p2/postulantes' },
+      { name: 'Postulante Docente', icon: GraduationCap, path: '/p2/postulante-docente' },
       { name: 'Requisitos', icon: ClipboardList, path: '/p2/requisitos' },
       { name: 'Documentos', icon: FileCheck, path: '/p2/documentos' },
       { name: 'Pagos', icon: CreditCard, path: '/p2/pagos' }
@@ -69,6 +70,7 @@ export default function DashboardLayout() {
       '/p1/roles': 'Roles',
       '/p1/bitacora': 'Bitácora',
       '/p2/postulantes': 'Postulantes',
+      '/p2/postulante-docente': 'Postulante Docente',
       '/p2/requisitos': 'Requisitos',
       '/p2/documentos': 'Documentos',
       '/p2/pagos': 'Pagos',
