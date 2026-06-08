@@ -47,8 +47,14 @@ export default function LoginForm() {
     if (locked) return;
     setErrorMsg('');
     try {
-      await authService.login(data);
-      navigate('/dashboard');
+      const response = await authService.login(data);
+      if (response?.user?.rol === 'Docente') {
+        navigate('/docente/dashboard');
+      } else if (response?.user?.rol === 'Postulante') {
+        navigate('/postulante/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (error) {
       const res = error.response?.data;
       if (res) {

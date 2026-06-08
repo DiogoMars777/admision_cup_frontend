@@ -25,6 +25,14 @@ export default function PublicPostulacionModal({ isOpen, onClose }) {
       axios.get('http://localhost:8000/api/public/carreras')
         .then(res => setCarrerasDb(res.data))
         .catch(err => console.error("Error fetching carreras:", err));
+    } else {
+      setForm({
+        apellidos: '', nombre: '', ci: '', procedencia: '', genero: '', telf1: '', telf2: '', correo: '',
+        ue: '', tipoUe: '', turnoUe: '', provinciaUe: '', anioEgreso: '',
+        turnoPreferido: '', modalidadPreferida: '',
+        carrera1: '', modalidad1: '', carrera2: '', modalidad2: ''
+      });
+      setShowCarreraModal(false);
     }
   }, [isOpen]);
 
@@ -280,32 +288,32 @@ export default function PublicPostulacionModal({ isOpen, onClose }) {
               <div className="grid grid-cols-2 gap-x-8 gap-y-4">
                 <div>
                   <label className="block text-center text-sm font-bold text-black mb-1">Apellido(s)</label>
-                  <input type="text" placeholder="Ej. Pérez Gómez" className="w-full border border-gray-400 p-1.5 text-sm text-center placeholder-gray-400" value={form.apellidos} onChange={e => setForm({...form, apellidos: e.target.value})} />
+                  <input type="text" placeholder="Ej. Pérez Gómez" className={`w-full border border-gray-400 p-1.5 text-sm text-center placeholder-gray-400 ${form.apellidos ? 'text-black font-bold' : ''}`} value={form.apellidos} onChange={e => setForm({...form, apellidos: e.target.value})} />
                 </div>
                 <div>
                   <label className="block text-center text-sm font-bold text-black mb-1">Nombre(s)</label>
-                  <input type="text" placeholder="Ej. Juan Carlos" className="w-full border border-gray-400 p-1.5 text-sm text-center placeholder-gray-400" value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})} />
+                  <input type="text" placeholder="Ej. Juan Carlos" className={`w-full border border-gray-400 p-1.5 text-sm text-center placeholder-gray-400 ${form.nombre ? 'text-black font-bold' : ''}`} value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})} />
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-x-6 gap-y-4 mt-4">
                 <div>
                   <label className="block text-center text-sm font-bold text-black mb-1">Cédula de Identidad</label>
-                  <input type="text" placeholder="Ej. 1234567" className="w-full border border-gray-400 p-1.5 text-sm text-center placeholder-gray-400" value={form.ci} onChange={e => setForm({...form, ci: e.target.value})} />
+                  <input type="text" placeholder="Ej. 1234567" className={`w-full border border-gray-400 p-1.5 text-sm text-center placeholder-gray-400 ${form.ci ? 'text-black font-bold' : ''}`} value={form.ci} onChange={e => setForm({...form, ci: e.target.value})} />
                 </div>
                 <div>
                   <label className="block text-center text-sm font-bold text-black mb-1">Procedencia</label>
-                  <select className={`w-full border border-gray-400 p-1.5 text-sm text-center bg-white appearance-none ${form.procedencia === '' ? 'text-gray-400' : 'text-black'}`} style={{ textAlignLast: 'center' }} value={form.procedencia} onChange={e => setForm({...form, procedencia: e.target.value})}>
-                    <option value="" disabled hidden>Ej. Santa Cruz</option>
-                    {departamentos.map(d => <option key={d} value={d}>{d}</option>)}
+                  <select className={`w-full border border-gray-400 p-1.5 text-sm text-center bg-white appearance-none ${form.procedencia === '' ? 'text-gray-400 font-normal' : 'text-black font-bold'}`} style={{ textAlignLast: 'center' }} value={form.procedencia} onChange={e => setForm({...form, procedencia: e.target.value})}>
+                    <option value="" disabled hidden className="text-gray-400 font-normal">Ej. Santa Cruz</option>
+                    {departamentos.map(d => <option key={d} value={d} className="text-black font-bold">{d}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-center text-sm font-bold text-black mb-1">Género</label>
-                  <select className={`w-full border border-gray-400 p-1.5 text-sm bg-white text-center ${form.genero === '' ? 'text-gray-400' : 'text-black'}`} style={{ textAlignLast: 'center' }} value={form.genero} onChange={e => setForm({...form, genero: e.target.value})}>
-                    <option value="" disabled hidden>Ej. Masculino</option>
-                    <option value="Masculino">Masculino</option>
-                    <option value="Femenino">Femenino</option>
+                  <select className={`w-full border border-gray-400 p-1.5 text-sm bg-white text-center ${form.genero === '' ? 'text-gray-400 font-normal' : 'text-black font-bold'}`} style={{ textAlignLast: 'center' }} value={form.genero} onChange={e => setForm({...form, genero: e.target.value})}>
+                    <option value="" disabled hidden className="text-gray-400 font-normal">Ej. Masculino</option>
+                    <option value="Masculino" className="text-black font-bold">Masculino</option>
+                    <option value="Femenino" className="text-black font-bold">Femenino</option>
                   </select>
                 </div>
               </div>
@@ -313,15 +321,15 @@ export default function PublicPostulacionModal({ isOpen, onClose }) {
               <div className="grid grid-cols-3 gap-x-6 gap-y-4 mt-4">
                 <div>
                   <label className="block text-center text-sm font-bold text-black mb-1">1er Telf. de Contacto</label>
-                  <input type="text" placeholder="Ej. 70012345" className="w-full border border-gray-400 p-1.5 text-sm text-center placeholder-gray-400" value={form.telf1} onChange={e => setForm({...form, telf1: e.target.value})} />
+                  <input type="text" placeholder="Ej. 70012345" className={`w-full border border-gray-400 p-1.5 text-sm text-center placeholder-gray-400 ${form.telf1 ? 'text-black font-bold' : ''}`} value={form.telf1} onChange={e => setForm({...form, telf1: e.target.value})} />
                 </div>
                 <div>
                   <label className="block text-center text-sm font-bold text-black mb-1">2do Telf. de Contacto (opcional)</label>
-                  <input type="text" placeholder="Ej. 3331234" className="w-full border border-gray-400 p-1.5 text-sm text-center placeholder-gray-400" value={form.telf2} onChange={e => setForm({...form, telf2: e.target.value})} />
+                  <input type="text" placeholder="Ej. 3331234" className={`w-full border border-gray-400 p-1.5 text-sm text-center placeholder-gray-400 ${form.telf2 ? 'text-black font-bold' : ''}`} value={form.telf2} onChange={e => setForm({...form, telf2: e.target.value})} />
                 </div>
                 <div>
                   <label className="block text-center text-sm font-bold text-black mb-1">Correo Electrónico</label>
-                  <input type="email" placeholder="Ej. juan@email.com" className="w-full border border-gray-400 p-1.5 text-sm text-center placeholder-gray-400" value={form.correo} onChange={e => setForm({...form, correo: e.target.value})} />
+                  <input type="email" placeholder="Ej. juan@email.com" className={`w-full border border-gray-400 p-1.5 text-sm text-center placeholder-gray-400 ${form.correo ? 'text-black font-bold' : ''}`} value={form.correo} onChange={e => setForm({...form, correo: e.target.value})} />
                 </div>
               </div>
             </div>
@@ -334,35 +342,35 @@ export default function PublicPostulacionModal({ isOpen, onClose }) {
               <div className="flex gap-4 items-end">
                 <div className="flex-1">
                   <label className="block text-center text-sm font-bold text-black mb-1">Unidad Educativa</label>
-                  <input type="text" placeholder="Ej. Nacional Florida" className="w-full border border-gray-400 p-1.5 text-sm text-center placeholder-gray-400" value={form.ue} onChange={e => setForm({...form, ue: e.target.value})} />
+                  <input type="text" placeholder="Ej. Nacional Florida" className={`w-full border border-gray-400 p-1.5 text-sm text-center placeholder-gray-400 ${form.ue ? 'text-black font-bold' : ''}`} value={form.ue} onChange={e => setForm({...form, ue: e.target.value})} />
                 </div>
                 <div className="w-32">
                   <label className="block text-center text-sm font-bold text-black mb-1">Tipo</label>
-                  <select className={`w-full border border-gray-400 p-1.5 text-sm bg-white text-center ${form.tipoUe === '' ? 'text-gray-400' : 'text-black'}`} style={{ textAlignLast: 'center' }} value={form.tipoUe} onChange={e => setForm({...form, tipoUe: e.target.value})}>
-                    <option value="" disabled hidden>Ej. Fiscal</option>
-                    <option value="Fiscal">Fiscal</option>
-                    <option value="Convenio">Convenio</option>
-                    <option value="Particular">Particular</option>
+                  <select className={`w-full border border-gray-400 p-1.5 text-sm bg-white text-center ${form.tipoUe === '' ? 'text-gray-400 font-normal' : 'text-black font-bold'}`} style={{ textAlignLast: 'center' }} value={form.tipoUe} onChange={e => setForm({...form, tipoUe: e.target.value})}>
+                    <option value="" disabled hidden className="text-gray-400 font-normal">Ej. Fiscal</option>
+                    <option value="Fiscal" className="text-black font-bold">Fiscal</option>
+                    <option value="Convenio" className="text-black font-bold">Convenio</option>
+                    <option value="Particular" className="text-black font-bold">Particular</option>
                   </select>
                 </div>
                 <div className="w-32">
                   <label className="block text-center text-sm font-bold text-black mb-1">Turno</label>
-                  <select className={`w-full border border-gray-400 p-1.5 text-sm bg-white text-center ${form.turnoUe === '' ? 'text-gray-400' : 'text-black'}`} style={{ textAlignLast: 'center' }} value={form.turnoUe} onChange={e => setForm({...form, turnoUe: e.target.value})}>
-                    <option value="" disabled hidden>Ej. Mañana</option>
-                    <option value="Mañana">Mañana</option>
-                    <option value="Tarde">Tarde</option>
-                    <option value="Noche">Noche</option>
+                  <select className={`w-full border border-gray-400 p-1.5 text-sm bg-white text-center ${form.turnoUe === '' ? 'text-gray-400 font-normal' : 'text-black font-bold'}`} style={{ textAlignLast: 'center' }} value={form.turnoUe} onChange={e => setForm({...form, turnoUe: e.target.value})}>
+                    <option value="" disabled hidden className="text-gray-400 font-normal">Ej. Mañana</option>
+                    <option value="Mañana" className="text-black font-bold">Mañana</option>
+                    <option value="Tarde" className="text-black font-bold">Tarde</option>
+                    <option value="Noche" className="text-black font-bold">Noche</option>
                   </select>
                 </div>
                 <div className="w-40">
                   <label className="block text-center text-sm font-bold text-black mb-1">Provincia</label>
-                  <input type="text" placeholder="Ej. Andrés Ibáñez" className="w-full border border-gray-400 p-1.5 text-sm text-center placeholder-gray-400" value={form.provinciaUe} onChange={e => setForm({...form, provinciaUe: e.target.value})} />
+                  <input type="text" placeholder="Ej. Andrés Ibáñez" className={`w-full border border-gray-400 p-1.5 text-sm text-center placeholder-gray-400 ${form.provinciaUe ? 'text-black font-bold' : ''}`} value={form.provinciaUe} onChange={e => setForm({...form, provinciaUe: e.target.value})} />
                 </div>
                 <div className="w-32">
                   <label className="block text-center text-sm font-bold text-black mb-1">Año de Egreso</label>
-                  <select className={`w-full border border-gray-400 p-1.5 text-sm bg-white text-center ${form.anioEgreso === '' ? 'text-gray-400' : 'text-black'}`} style={{ textAlignLast: 'center' }} value={form.anioEgreso} onChange={e => setForm({...form, anioEgreso: e.target.value})}>
-                    <option value="" disabled hidden>Ej. 2026</option>
-                    {[...Array(20)].map((_, i) => <option key={i} value={currentYear - i}>{currentYear - i}</option>)}
+                  <select className={`w-full border border-gray-400 p-1.5 text-sm bg-white text-center ${form.anioEgreso === '' ? 'text-gray-400 font-normal' : 'text-black font-bold'}`} style={{ textAlignLast: 'center' }} value={form.anioEgreso} onChange={e => setForm({...form, anioEgreso: e.target.value})}>
+                    <option value="" disabled hidden className="text-gray-400 font-normal">Ej. 2026</option>
+                    {[...Array(20)].map((_, i) => <option key={i} value={currentYear - i} className="text-black font-bold">{currentYear - i}</option>)}
                   </select>
                 </div>
               </div>
@@ -376,20 +384,20 @@ export default function PublicPostulacionModal({ isOpen, onClose }) {
               <div className="grid grid-cols-2 gap-x-8 gap-y-4">
                 <div>
                   <label className="block text-center text-sm font-bold text-black mb-1">Turno Preferido</label>
-                  <select className={`w-full border border-gray-400 p-1.5 text-sm bg-white text-center ${form.turnoPreferido === '' ? 'text-gray-400' : 'text-black'}`} style={{ textAlignLast: 'center' }} value={form.turnoPreferido} onChange={e => setForm({...form, turnoPreferido: e.target.value})}>
-                    <option value="" disabled hidden>Ej. Mañana</option>
-                    <option value="Mañana">Mañana</option>
-                    <option value="Tarde">Tarde</option>
-                    <option value="Noche">Noche</option>
+                  <select className={`w-full border border-gray-400 p-1.5 text-sm bg-white text-center ${form.turnoPreferido === '' ? 'text-gray-400 font-normal' : 'text-black font-bold'}`} style={{ textAlignLast: 'center' }} value={form.turnoPreferido} onChange={e => setForm({...form, turnoPreferido: e.target.value})}>
+                    <option value="" disabled hidden className="text-gray-400 font-normal">Ej. Mañana</option>
+                    <option value="Mañana" className="text-black font-bold">Mañana</option>
+                    <option value="Tarde" className="text-black font-bold">Tarde</option>
+                    <option value="Noche" className="text-black font-bold">Noche</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-center text-sm font-bold text-black mb-1">Modalidad Preferida</label>
-                  <select className={`w-full border border-gray-400 p-1.5 text-sm bg-white text-center ${form.modalidadPreferida === '' ? 'text-gray-400' : 'text-black'}`} style={{ textAlignLast: 'center' }} value={form.modalidadPreferida} onChange={e => setForm({...form, modalidadPreferida: e.target.value})}>
-                    <option value="" disabled hidden>Ej. Presencial</option>
-                    <option value="Presencial">Presencial</option>
-                    <option value="Virtual">Virtual</option>
-                    <option value="Semi-Presencial">Semi-Presencial</option>
+                  <select className={`w-full border border-gray-400 p-1.5 text-sm bg-white text-center ${form.modalidadPreferida === '' ? 'text-gray-400 font-normal' : 'text-black font-bold'}`} style={{ textAlignLast: 'center' }} value={form.modalidadPreferida} onChange={e => setForm({...form, modalidadPreferida: e.target.value})}>
+                    <option value="" disabled hidden className="text-gray-400 font-normal">Ej. Presencial</option>
+                    <option value="Presencial" className="text-black font-bold">Presencial</option>
+                    <option value="Virtual" className="text-black font-bold">Virtual</option>
+                    <option value="Semi-Presencial" className="text-black font-bold">Semi-Presencial</option>
                   </select>
                 </div>
               </div>
@@ -406,14 +414,14 @@ export default function PublicPostulacionModal({ isOpen, onClose }) {
                 </button>
                 <div className="flex-1">
                   <label className="block text-sm font-bold text-black mb-1">Carrera</label>
-                  <input type="text" readOnly placeholder="Ej. Ingeniería de Sistemas" className="w-full border border-gray-400 p-1.5 text-sm bg-gray-50 placeholder-gray-400" value={form.carrera1} />
+                  <input type="text" readOnly placeholder="Ej. Ingeniería de Sistemas" className={`w-full border border-gray-400 p-1.5 text-sm bg-gray-50 placeholder-gray-400 ${form.carrera1 ? 'text-black font-bold' : ''}`} value={form.carrera1} />
                 </div>
                 <div className="w-64">
                   <label className="block text-sm font-bold text-black mb-1">Modalidad</label>
-                  <select className={`w-full border border-gray-400 p-1.5 text-sm bg-white text-center ${form.modalidad1 === '' ? 'text-gray-400' : 'text-black'}`} style={{ textAlignLast: 'center' }} value={form.modalidad1} onChange={e => setForm({...form, modalidad1: e.target.value})}>
-                    <option value="" disabled hidden>Ej. Presencial</option>
-                    <option value="Presencial">Presencial</option>
-                    <option value="Virtual">Virtual</option>
+                  <select className={`w-full border border-gray-400 p-1.5 text-sm bg-white text-center ${form.modalidad1 === '' ? 'text-gray-400 font-normal' : 'text-black font-bold'}`} style={{ textAlignLast: 'center' }} value={form.modalidad1} onChange={e => setForm({...form, modalidad1: e.target.value})}>
+                    <option value="" disabled hidden className="text-gray-400 font-normal">Ej. Presencial</option>
+                    <option value="Presencial" className="text-black font-bold">Presencial</option>
+                    <option value="Virtual" className="text-black font-bold">Virtual</option>
                   </select>
                 </div>
                 <div className="w-20 text-center">
@@ -428,13 +436,13 @@ export default function PublicPostulacionModal({ isOpen, onClose }) {
                   Elegir
                 </button>
                 <div className="flex-1">
-                  <input type="text" readOnly placeholder="Ej. Ingeniería Informática" className="w-full border border-gray-400 p-1.5 text-sm bg-gray-50 placeholder-gray-400" value={form.carrera2} />
+                  <input type="text" readOnly placeholder="Ej. Ingeniería Informática" className={`w-full border border-gray-400 p-1.5 text-sm bg-gray-50 placeholder-gray-400 ${form.carrera2 ? 'text-black font-bold' : ''}`} value={form.carrera2} />
                 </div>
                 <div className="w-64">
-                  <select className={`w-full border border-gray-400 p-1.5 text-sm bg-white text-center ${form.modalidad2 === '' ? 'text-gray-400' : 'text-black'}`} style={{ textAlignLast: 'center' }} value={form.modalidad2} onChange={e => setForm({...form, modalidad2: e.target.value})}>
-                    <option value="" disabled hidden>Ej. Virtual</option>
-                    <option value="Presencial">Presencial</option>
-                    <option value="Virtual">Virtual</option>
+                  <select className={`w-full border border-gray-400 p-1.5 text-sm bg-white text-center ${form.modalidad2 === '' ? 'text-gray-400 font-normal' : 'text-black font-bold'}`} style={{ textAlignLast: 'center' }} value={form.modalidad2} onChange={e => setForm({...form, modalidad2: e.target.value})}>
+                    <option value="" disabled hidden className="text-gray-400 font-normal">Ej. Virtual</option>
+                    <option value="Presencial" className="text-black font-bold">Presencial</option>
+                    <option value="Virtual" className="text-black font-bold">Virtual</option>
                   </select>
                 </div>
                 <div className="w-20 text-center">

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, FileClock, UserPlus, ClipboardList, 
@@ -21,6 +21,16 @@ export default function DashboardLayout() {
   const userFirstName = userName.split(' ')[0];
   const userRole = user?.rol || 'Administrador';
 
+  useEffect(() => {
+    if (location.pathname === '/dashboard') {
+      if (userRole === 'Docente') {
+        navigate('/docente/dashboard', { replace: true });
+      } else if (userRole === 'Postulante') {
+        navigate('/postulante/dashboard', { replace: true });
+      }
+    }
+  }, [userRole, location.pathname, navigate]);
+
   const handleLogout = async () => {
     const token = localStorage.getItem('token');
     try {
@@ -40,7 +50,28 @@ export default function DashboardLayout() {
 
   const isActive = (path) => location.pathname === path || (path !== '/dashboard' && location.pathname.startsWith(path));
 
-  const menuItems = [
+  const menuItems = userRole === 'Docente' ? [
+    { section: 'DOCENTE', items: [
+      { name: 'Inicio', icon: LayoutDashboard, path: '/docente/dashboard' },
+      { name: 'Mis Grupos', icon: UsersRound, path: '/docente/grupos' },
+      { name: 'Materias', icon: BookOpen, path: '/p3/materias' },
+      { name: 'Registrar Notas', icon: ClipboardList, path: '/docente/notas' },
+      { name: 'Asistencia', icon: FileCheck, path: '/docente/asistencia' },
+      { name: 'Horarios', icon: FileClock, path: '/docente/horarios' },
+      { name: 'Reportes', icon: ShieldAlert, path: '/docente/reportes' },
+      { name: 'Perfil', icon: UserPlus, path: '/docente/perfil' }
+    ]}
+  ] : userRole === 'Postulante' ? [
+    { section: 'POSTULANTE', items: [
+      { name: 'Inicio', icon: LayoutDashboard, path: '/postulante/dashboard' },
+      { name: 'Mis Documentos', icon: FileCheck, path: '/postulante/documentos' },
+      { name: 'Pagos', icon: CreditCard, path: '/postulante/pagos' },
+      { name: 'Materias', icon: BookOpen, path: '/postulante/materias' },
+      { name: 'Horarios', icon: FileClock, path: '/postulante/horarios' },
+      { name: 'Notas', icon: ClipboardList, path: '/postulante/notas' },
+      { name: 'Perfil', icon: UserPlus, path: '/postulante/perfil' }
+    ]}
+  ] : [
     { section: 'PANEL', items: [{ name: 'Panel', icon: LayoutDashboard, path: '/dashboard' }] },
     { section: 'SEGURIDAD', items: [
       { name: 'Usuarios', icon: Users, path: '/p1/usuarios' },
@@ -78,6 +109,8 @@ export default function DashboardLayout() {
       '/p3/docentes': 'Docentes',
       '/p3/grupos': 'Grupos',
       '/p3/aulas': 'Aulas',
+      '/docente/dashboard': 'Inicio',
+      '/postulante/dashboard': 'Inicio',
     };
     return pathMap[location.pathname] || 'Panel';
   };

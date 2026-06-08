@@ -25,6 +25,16 @@ export const aspiranteDocenteService = {
     return response.data;
   },
 
+  update: async (id, data) => {
+    const response = await api.put(`/aspirantes-docentes/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id) => {
+    const response = await api.delete(`/aspirantes-docentes/${id}`);
+    return response.data;
+  },
+
   getMaterias: async (id) => {
     const response = await api.get(`/aspirantes-docentes/${id}/materias`);
     return response.data;

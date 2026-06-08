@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, Filter, Eye, ChevronRight, ArrowLeft, BookOpen, CheckCircle, FileText, Upload, UserPlus, Info, Pencil, Lock } from 'lucide-react';
+import { Plus, Search, Filter, Eye, ChevronRight, ArrowLeft, BookOpen, CheckCircle, FileText, Upload, UserPlus, Info, Pencil, Lock, ShieldCheck, CheckCircle2, Trash2 } from 'lucide-react';
 import { aspiranteDocenteService } from '../services/aspiranteDocenteService';
 import { materiaService } from '../../p3-academico/services/materiaService';
 
@@ -12,10 +12,12 @@ export default function PostulanteDocentePage() {
   const [selectedMateria, setSelectedMateria] = useState(null);
   const [requisitos, setRequisitos] = useState([]);
   const [editMode, setEditMode] = useState(false); // controla si los checkboxes están bloqueados
+  const [saving, setSaving] = useState(false);
   
   // Modals
   const [showNuevaPostulacion, setShowNuevaPostulacion] = useState(false);
   const [showNuevoAspirante, setShowNuevoAspirante] = useState(false);
+  const [isEditingAspirante, setIsEditingAspirante] = useState(false);
   
   // Catalogs
   const [catalogoMaterias, setCatalogoMaterias] = useState([]);
@@ -77,37 +79,44 @@ export default function PostulanteDocentePage() {
     }
   };
 
-  const handleToggleRequisito = useCallback(async (reqId, currentVal) => {
+  const handleToggleRequisito = useCallback((reqId, currentVal) => {
     const newVal = !currentVal;
-    // Actualización OPTIMISTA: aplica el cambio en local inmediatamente
+    // Actualización local
     setRequisitos(prev => prev.map(r =>
       r.id_materia_requisito === reqId
         ? { ...r, cumplido: newVal, estado: newVal ? 'Cumplido' : 'Pendiente' }
         : r
     ));
+  }, []);
 
-    // Sincroniza con el servidor en segundo plano
+  const handleSaveRequisitos = async (markComplete = false) => {
+    setSaving(markComplete ? 'complete' : 'partial');
     try {
-      await aspiranteDocenteService.toggleRequisito({
-        id_aspirante: selectedAspirante.id,
-        id_materia_requisito: reqId,
-        cumplido: newVal
-      });
+      const updatedReqs = markComplete ? requisitos.map(r => ({ ...r, cumplido: true, estado: 'Cumplido' })) : requisitos;
+      if (markComplete) setRequisitos(updatedReqs);
+
+      const promises = updatedReqs.map(req => 
+        aspiranteDocenteService.toggleRequisito({
+          id_aspirante: selectedAspirante.id,
+          id_materia_requisito: req.id_materia_requisito,
+          cumplido: req.cumplido
+        })
+      );
+      await Promise.all(promises);
+
       // Actualiza materias y aspirantes en paralelo sin bloquear la UI
-      Promise.all([
+      await Promise.all([
         aspiranteDocenteService.getMaterias(selectedAspirante.id).then(setMaterias),
         aspiranteDocenteService.getAll(searchTerm).then(setAspirantes)
       ]);
+      setEditMode(false);
     } catch (error) {
-      // Si falla, revierte el cambio
-      setRequisitos(prev => prev.map(r =>
-        r.id_materia_requisito === reqId
-          ? { ...r, cumplido: currentVal, estado: currentVal ? 'Cumplido' : 'Pendiente' }
-          : r
-      ));
-      console.error("Error toggling req", error);
+      console.error("Error saving reqs", error);
+      alert('Error al guardar validaciones');
+    } finally {
+      setSaving(false);
     }
-  }, [selectedAspirante, selectedMateria, searchTerm]);
+  };
 
   const handlePostularMateria = async (e) => {
     e.preventDefault();
@@ -126,23 +135,56 @@ export default function PostulanteDocentePage() {
     }
   };
 
-  const handleCreateAspirante = async (e) => {
+  const handleSubmitAspirante = async (e) => {
     e.preventDefault();
     try {
-      await aspiranteDocenteService.create(formAspirante);
+      if (isEditingAspirante) {
+        await aspiranteDocenteService.update(formAspirante.id, formAspirante);
+      } else {
+        await aspiranteDocenteService.create(formAspirante);
+      }
       setShowNuevoAspirante(false);
       setFormAspirante({ ci: '', nombre: '', email: '', telefono: '', sexo: 'M', grado_academico: '', experiencia: 0 });
+      setIsEditingAspirante(false);
       fetchAspirantes();
     } catch (error) {
-      alert(error.response?.data?.message || 'Error al crear');
+      alert(error.response?.data?.message || (isEditingAspirante ? 'Error al actualizar' : 'Error al crear'));
+    }
+  };
+
+  const handleEditClick = (e, aspirante) => {
+    e.stopPropagation();
+    setFormAspirante({
+      id: aspirante.id,
+      ci: aspirante.ci || '',
+      nombre: aspirante.nombre || '',
+      email: aspirante.email || '',
+      telefono: aspirante.telefono || '',
+      sexo: aspirante.sexo || 'M',
+      grado_academico: aspirante.grado_academico || '',
+      experiencia: aspirante.experiencia || 0
+    });
+    setIsEditingAspirante(true);
+    setShowNuevoAspirante(true);
+  };
+
+  const handleDeleteClick = async (e, id) => {
+    e.stopPropagation();
+    if(window.confirm('¿Está seguro de eliminar a este aspirante?')) {
+      try {
+        await aspiranteDocenteService.delete(id);
+        fetchAspirantes();
+      } catch (error) {
+        alert(error.response?.data?.message || 'Error al eliminar');
+      }
     }
   };
 
   const handleConvertirDocente = async () => {
-    if(window.confirm('¿Desea aprobar y convertir a este aspirante en Docente oficial? Se le enviarán sus credenciales por correo.')) {
+    if(window.confirm('¿Desea aprobar y convertir a este aspirante en Docente oficial?\n\nSe realizará lo siguiente:\n• Se verificarán los requisitos automáticamente\n• Se creará un usuario con contraseña = su carnet de identidad\n• Se asignará el rol Docente\n• Se le enviará un correo con sus credenciales y materias')) {
       try {
-        await aspiranteDocenteService.convertirADocente(selectedAspirante.id);
-        alert('¡Postulación exitosa! El aspirante ahora es Docente oficial.');
+        const response = await aspiranteDocenteService.convertirADocente(selectedAspirante.id);
+        alert(`¡Conversión exitosa!\n\n• ${response.materias_aprobadas} materia(s) aprobadas\n• Usuario: ${response.email}\n• Contraseña: Su carnet (CI)\n• Correo enviado con credenciales`);
         setSelectedAspirante(null);
         fetchAspirantes();
       } catch (error) {
@@ -176,13 +218,19 @@ export default function PostulanteDocentePage() {
           <h2 className="text-2xl font-bold text-gray-800">Postulantes Docentes</h2>
           <p className="text-sm text-gray-500">Gestiona a los usuarios registrados como aspirantes a docente.</p>
         </div>
-        <button 
-          onClick={() => setShowNuevoAspirante(true)}
-          className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-lg flex items-center shadow-sm transition-colors text-sm font-medium"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Nuevo Aspirante
-        </button>
+        {!selectedAspirante && (
+          <button 
+            onClick={() => {
+              setFormAspirante({ ci: '', nombre: '', email: '', telefono: '', sexo: 'M', grado_academico: '', experiencia: 0 });
+              setIsEditingAspirante(false);
+              setShowNuevoAspirante(true);
+            }}
+            className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-lg flex items-center shadow-sm transition-colors text-sm font-medium"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nuevo Aspirante
+          </button>
+        )}
       </div>
 
       {!selectedAspirante ? (
@@ -202,10 +250,6 @@ export default function PostulanteDocentePage() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <button className="flex items-center text-gray-600 bg-gray-50 border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-100 text-sm font-medium transition-colors">
-                <Filter className="h-4 w-4 mr-2" />
-                Filtros
-              </button>
             </div>
 
             {loading ? (
@@ -216,7 +260,7 @@ export default function PostulanteDocentePage() {
                   <thead>
                     <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
                       <th className="px-6 py-4 font-medium">Aspirante</th>
-                      <th className="px-6 py-4 font-medium">Documento</th>
+                      <th className="px-6 py-4 font-medium">Carnet</th>
                       <th className="px-6 py-4 font-medium text-center">Materias</th>
                       <th className="px-6 py-4 font-medium">Estado</th>
                       <th className="px-6 py-4 font-medium text-right">Acción</th>
@@ -224,7 +268,11 @@ export default function PostulanteDocentePage() {
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {aspirantes.map((aspirante) => (
-                      <tr key={aspirante.id} className="hover:bg-gray-50 transition-colors">
+                      <tr 
+                        key={aspirante.id} 
+                        className="hover:bg-gray-50 transition-colors cursor-pointer"
+                        onClick={() => handleSelectAspirante(aspirante)}
+                      >
                         <td className="px-6 py-4 flex items-center gap-3">
                           <div className="h-10 w-10 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-sm">
                             {aspirante.nombre.substring(0,2).toUpperCase()}
@@ -244,13 +292,22 @@ export default function PostulanteDocentePage() {
                           {getStatusBadge(aspirante.estado)}
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <button 
-                            onClick={() => handleSelectAspirante(aspirante)} 
-                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" 
-                            title="Ver detalle"
-                          >
-                            <Eye className="h-5 w-5" />
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            <button 
+                              onClick={(e) => handleEditClick(e, aspirante)} 
+                              className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors" 
+                              title="Editar"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                            <button 
+                              onClick={(e) => handleDeleteClick(e, aspirante.id)} 
+                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" 
+                              title="Eliminar"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -272,9 +329,9 @@ export default function PostulanteDocentePage() {
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
           <button 
             onClick={() => setSelectedAspirante(null)}
-            className="flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors mb-2"
+            className="inline-flex items-center text-sm font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-4 py-2 rounded-lg transition-colors mb-2"
           >
-            <ArrowLeft className="h-4 w-4 mr-1" /> Volver a la lista
+            <ArrowLeft className="h-4 w-4 mr-2" /> Volver a la lista
           </button>
           
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -303,10 +360,7 @@ export default function PostulanteDocentePage() {
           </div>
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="border-b border-gray-100 px-6 pt-4 flex gap-6">
-              <button className="pb-3 text-sm font-bold text-blue-600 border-b-2 border-blue-600">Materias postuladas</button>
-              <button className="pb-3 text-sm font-medium text-gray-500 hover:text-gray-700">Información personal</button>
-            </div>
+
             
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
@@ -367,9 +421,7 @@ export default function PostulanteDocentePage() {
               </div>
 
               {selectedMateria && (() => {
-                const todosObligatoriosCumplidos = requisitos.length > 0 &&
-                  requisitos.filter(r => r.obligatorio).every(r => r.cumplido);
-                const bloqueado = todosObligatoriosCumplidos && !editMode;
+                const bloqueado = selectedMateria.estado === 'Aprobada' && !editMode;
 
                 return (
                   <div className="animate-in slide-in-from-top-2 duration-300">
@@ -387,9 +439,7 @@ export default function PostulanteDocentePage() {
                             <Pencil className="h-4 w-4 mr-2" /> Editar
                           </button>
                         )}
-                        <button className="flex items-center text-blue-600 bg-blue-50 border border-blue-100 px-4 py-2 rounded-lg hover:bg-blue-100 text-sm font-medium transition-colors">
-                          <FileText className="h-4 w-4 mr-2" /> Ver documentos
-                        </button>
+
                       </div>
                     </div>
 
@@ -400,78 +450,99 @@ export default function PostulanteDocentePage() {
                       </div>
                     )}
 
-                    <div className="border border-gray-200 rounded-xl overflow-hidden">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
-                            <th className="px-6 py-3 font-medium">Requisito</th>
-                            <th className="px-6 py-3 font-medium">Descripción</th>
-                            <th className="px-6 py-3 font-medium text-center">Obligatorio</th>
-                            <th className="px-6 py-3 font-medium text-center">Cumplido</th>
-                            <th className="px-6 py-3 font-medium">Estado</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {requisitos.map(req => (
-                            <tr key={req.id_materia_requisito} className={`transition-colors ${bloqueado ? 'bg-gray-50/50' : 'hover:bg-gray-50'}`}>
-                              <td className="px-6 py-4 font-semibold text-sm text-gray-800">{req.requisito_nombre}</td>
-                              <td className="px-6 py-4 text-xs text-gray-500">{req.descripcion}</td>
-                              <td className="px-6 py-4 text-center">
-                                {req.obligatorio
-                                  ? <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs font-semibold">Sí</span>
-                                  : <span className="text-gray-400 text-xs font-medium">No</span>}
-                              </td>
-                              <td className="px-6 py-4 text-center">
-                                {bloqueado ? (
-                                  <CheckCircle className="h-5 w-5 text-emerald-500 mx-auto" />
-                                ) : (
-                                  <input
-                                    type="checkbox"
-                                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-                                    checked={!!req.cumplido}
-                                    onChange={() => handleToggleRequisito(req.id_materia_requisito, req.cumplido)}
-                                  />
-                                )}
-                              </td>
-                              <td className="px-6 py-4">
-                                {req.cumplido ? (
-                                  <span className="flex items-center text-xs font-semibold text-emerald-600">
-                                    <CheckCircle className="h-3.5 w-3.5 mr-1" /> Cumplido
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                      <div className="grid grid-cols-[1fr_120px_2fr] gap-4 p-4 border-b border-gray-100 bg-gray-50 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        <div>Documentos requeridos</div>
+                        <div className="text-center">Estado</div>
+                        <div>Observaciones</div>
+                      </div>
+                      <div className="divide-y divide-gray-100">
+                        {requisitos.length === 0 ? (
+                          <div className="p-8 text-center text-gray-500">
+                            Esta materia no tiene requisitos específicos asignados.
+                          </div>
+                        ) : (
+                          requisitos.map(req => (
+                            <div key={req.id_materia_requisito} className={`grid grid-cols-1 sm:grid-cols-[1fr_120px_2fr] gap-4 p-4 items-start transition-colors ${bloqueado ? 'bg-gray-50/50' : (req.cumplido ? 'bg-white' : 'bg-red-50/20')}`}>
+                              <div className="flex items-center gap-4">
+                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${req.cumplido ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+                                  <ShieldCheck className="w-5 h-5" />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-bold text-gray-800">
+                                    {req.requisito_nombre}
+                                    {req.obligatorio && <span className="ml-2 bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-[10px] font-semibold">Obligatorio</span>}
+                                  </p>
+                                  <p className="text-[10px] text-gray-400 mt-0.5">{req.descripcion}</p>
+                                </div>
+                              </div>
+
+                              <div className="flex sm:justify-center pt-2">
+                                <label className="flex items-center cursor-pointer group">
+                                  <div className="relative flex items-center">
+                                    <input
+                                      type="checkbox"
+                                      className="sr-only"
+                                      checked={!!req.cumplido}
+                                      onChange={() => handleToggleRequisito(req.id_materia_requisito, req.cumplido)}
+                                      disabled={bloqueado}
+                                    />
+                                    <div className={`w-5 h-5 rounded border ${req.cumplido ? 'bg-green-500 border-green-500' : 'border-gray-300 bg-white group-hover:border-gray-400'} flex items-center justify-center transition-colors ${bloqueado ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                      {req.cumplido && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                                    </div>
+                                  </div>
+                                  <span className={`ml-2 text-sm font-medium ${req.cumplido ? 'text-gray-700' : 'text-gray-400'}`}>
+                                    {req.cumplido ? 'Cumplido' : 'Pendiente'}
                                   </span>
-                                ) : (
-                                  <span className="flex items-center text-xs font-semibold text-orange-500">
-                                    <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mr-1.5"></div> Pendiente
+                                </label>
+                              </div>
+
+                              <div>
+                                <div className="relative">
+                                  <textarea
+                                    className={`w-full h-16 resize-none rounded-lg border border-gray-200 p-3 text-sm transition-colors bg-gray-50 focus:bg-white ${bloqueado ? 'opacity-70 cursor-not-allowed text-gray-500' : 'text-gray-700 focus:ring-primary focus:border-primary'}`}
+                                    placeholder="Añadir observación..."
+                                    maxLength={200}
+                                    disabled={bloqueado}
+                                  ></textarea>
+                                  <span className="absolute bottom-2 right-2 text-[10px] text-gray-400 font-medium">
+                                    0/200
                                   </span>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                          {requisitos.length === 0 && (
-                            <tr><td colSpan="5" className="px-6 py-4 text-center text-sm text-gray-500">Esta materia no tiene requisitos específicos asignados.</td></tr>
-                          )}
-                        </tbody>
-                      </table>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
                     </div>
 
                     {!bloqueado && (
-                      <div className="mt-4 flex items-center gap-2 p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
-                        <Info className="h-4 w-4 flex-shrink-0" />
-                        <p>Debes cumplir todos los requisitos obligatorios (marcados con <b>"Sí"</b>) para que tu postulación pueda ser aprobada.</p>
-                      </div>
+                        <div className="flex flex-col sm:flex-row items-center justify-end gap-4 p-4 bg-gray-50 border border-gray-100 rounded-xl">
+                          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                            <button
+                              onClick={() => handleSaveRequisitos(false)}
+                              disabled={!!saving}
+                              className="w-full sm:w-auto px-6 py-2.5 text-sm font-bold text-white bg-blue-700 rounded-xl hover:bg-blue-800 transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                            >
+                              {saving === 'partial' ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <CheckCircle2 className="w-4 h-4" />}
+                              Guardar Validación
+                            </button>
+                          </div>
+                        </div>
                     )}
                   </div>
                 );
               })()}
               
               {/* Botón de Aprobación Global del Aspirante */}
-              {materias.length > 0 && materias.every(m => m.estado === 'Aprobada') && selectedAspirante.estado !== 'Docente Oficial' && (
+              {materias.length > 0 && materias.some(m => m.estado === 'Aprobada') && selectedAspirante.estado !== 'Docente Oficial' && (
                 <div className="mt-8 border border-emerald-200 bg-emerald-50 rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
                   <div>
                     <h4 className="font-bold text-emerald-900 text-lg flex items-center gap-2">
-                      <CheckCircle className="h-5 w-5 text-emerald-600" /> ¡Postulación Completa!
+                      <CheckCircle className="h-5 w-5 text-emerald-600" /> ¡Postulación Lista!
                     </h4>
                     <p className="text-sm text-emerald-800 mt-1">
-                      El aspirante cumple todos los requisitos obligatorios de sus materias postuladas, puede ser aprobado y convertido en docente.
+                      El aspirante tiene {materias.filter(m => m.estado === 'Aprobada').length} materia(s) con todos los requisitos cumplidos. Se le creará un usuario (contraseña = su carnet) y se le enviará un correo con sus credenciales y materias asignadas.
                     </p>
                   </div>
                   <button 
@@ -530,12 +601,12 @@ export default function PostulanteDocentePage() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
             <div className="p-5 border-b border-gray-100 flex justify-between items-center">
-              <h3 className="font-bold text-lg text-gray-800">Registrar Nuevo Aspirante a Docente</h3>
+              <h3 className="font-bold text-lg text-gray-800">{isEditingAspirante ? 'Editar Aspirante' : 'Nuevo Aspirante'}</h3>
               <button onClick={() => setShowNuevoAspirante(false)} className="text-gray-400 hover:text-gray-600">
                 &times;
               </button>
             </div>
-            <form onSubmit={handleCreateAspirante} className="p-5 space-y-4">
+            <form onSubmit={handleSubmitAspirante} className="p-5 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1">Carnet de Identidad</label>
@@ -581,7 +652,9 @@ export default function PostulanteDocentePage() {
               </div>
               <div className="pt-2 flex justify-end gap-3">
                 <button type="button" onClick={() => setShowNuevoAspirante(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors">Cancelar</button>
-                <button type="submit" className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Guardar Aspirante</button>
+                <button type="submit" className="px-6 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg shadow-sm text-sm font-medium transition-colors">
+                  {isEditingAspirante ? 'Guardar Cambios' : 'Registrar'}
+                </button>
               </div>
             </form>
           </div>
