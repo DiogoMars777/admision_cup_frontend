@@ -40,10 +40,19 @@ export default function PagosPage() {
     }
   };
 
-  const filtered = postulantes.filter(p =>
-    p.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.ci?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filtered = postulantes
+    .filter(p =>
+      p.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.ci?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      // Primero ordenar por estado de pago (Pendientes = false van primero)
+      if (a.tiene_pago === b.tiene_pago) {
+        // Luego ordenar alfabéticamente por nombre
+        return a.nombre.localeCompare(b.nombre);
+      }
+      return a.tiene_pago ? 1 : -1;
+    });
 
   const pagados = postulantes.filter(p => p.tiene_pago).length;
   const pendientes = postulantes.filter(p => !p.tiene_pago).length;
@@ -146,7 +155,7 @@ export default function PagosPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
-                        {p.email || <span className="italic text-gray-400">Sin correo</span>}
+                        {p.correo || <span className="italic text-gray-400">Sin correo</span>}
                       </td>
                       <td className="px-6 py-4 text-center">
                         {p.tiene_pago ? (
@@ -223,7 +232,7 @@ export default function PagosPage() {
                 <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-2">Datos del Postulante</p>
                 <p className="font-bold text-gray-800">{selectedPostulante.nombre}</p>
                 <p className="text-sm text-gray-500">CI: {selectedPostulante.ci}</p>
-                <p className="text-sm text-gray-500">Correo: {selectedPostulante.email || 'No registrado'}</p>
+                <p className="text-sm text-gray-500">Correo: {selectedPostulante.correo || 'No registrado'}</p>
               </div>
 
               {/* Amount */}

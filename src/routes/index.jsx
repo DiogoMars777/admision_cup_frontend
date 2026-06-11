@@ -1,5 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
-import SeguridadAccesoRoutes from '../packages/p1-seguridad-acceso/routes';
+import SeguridadAccesoRoutes from "../packages/routes";
 
 export default function AppRoutes() {
   return (

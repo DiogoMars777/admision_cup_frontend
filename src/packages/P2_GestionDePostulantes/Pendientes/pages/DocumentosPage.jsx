@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Search, Filter, ChevronRight, CheckCircle2, X, ShieldCheck, User as UserIcon, Building, Edit } from 'lucide-react';
-import { postulanteService } from '../services/postulanteService';
-import { requisitoService } from '../services/requisitoService';
+import { postulanteService } from '../../CU2_RegistrarPostulante/services/postulanteService';
+import { requisitoService } from '../../CU3_GestionarRequisitos/services/requisitoService';
 
 export default function DocumentosPage() {
   const [postulantes, setPostulantes] = useState([]);

@@ -3,7 +3,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, FileClock, UserPlus, ClipboardList, 
   BookOpen, GraduationCap, UsersRound, School, Menu, Bell,
-  ChevronDown, ShieldAlert, X, ChevronRight, FileCheck, CreditCard
+  ChevronDown, ShieldAlert, X, ChevronRight, FileCheck, CreditCard, Calendar, PieChart, Mic
 } from 'lucide-react';
 
 export default function DashboardLayout() {
@@ -86,10 +86,15 @@ export default function DashboardLayout() {
       { name: 'Pagos', icon: CreditCard, path: '/p2/pagos' }
     ]},
     { section: 'ACADÉMICO', items: [
+      { name: 'Gestiones Académicas', icon: Calendar, path: '/p3/gestiones-academicas' },
+      { name: 'Carreras', icon: BookOpen, path: '/p3/carreras' },
       { name: 'Materias', icon: BookOpen, path: '/p3/materias' },
       { name: 'Docentes', icon: GraduationCap, path: '/p3/docentes' },
       { name: 'Grupos', icon: UsersRound, path: '/p3/grupos' },
       { name: 'Aulas', icon: School, path: '/p3/aulas' }
+    ]},
+    { section: 'INTELIGENCIA ARTIFICIAL', items: [
+      { name: 'Reportes IA', icon: PieChart, path: '/reportes' }
     ]}
   ];
 
@@ -105,10 +110,13 @@ export default function DashboardLayout() {
       '/p2/requisitos': 'Requisitos',
       '/p2/documentos': 'Documentos',
       '/p2/pagos': 'Pagos',
+      '/p3/gestiones-academicas': 'Gestiones Académicas',
+      '/p3/carreras': 'Carreras',
       '/p3/materias': 'Materias',
       '/p3/docentes': 'Docentes',
       '/p3/grupos': 'Grupos',
       '/p3/aulas': 'Aulas',
+      '/reportes': 'Reportes Inteligentes',
       '/docente/dashboard': 'Inicio',
       '/postulante/dashboard': 'Inicio',
     };

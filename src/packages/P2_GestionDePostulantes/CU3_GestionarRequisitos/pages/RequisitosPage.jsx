@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Search, Edit, Trash2, BookOpen, User as UserIcon, CheckCircle2, AlertCircle, Save, Filter, ChevronRight } from 'lucide-react';
 import { requisitoService } from '../services/requisitoService';
-import { materiaService } from '../../p3-academico/services/materiaService';
+import { materiaService } from '../../../P3_GestionAcademicaBase/CU6_GestionarMaterias/services/materiaService';
 
 export default function RequisitosPage() {
   const [searchTerm, setSearchTerm] = useState('');

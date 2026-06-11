@@ -11,6 +11,7 @@ export default function PublicPostulacionModal({ isOpen, onClose }) {
   const departamentos = ['Santa Cruz', 'Beni', 'Pando', 'La Paz', 'Cochabamba', 'Oruro', 'Potosí', 'Chuquisaca', 'Tarija'];
   
   const [carrerasDb, setCarrerasDb] = useState([]);
+  const [activeCupName, setActiveCupName] = useState(`CUP ${currentYear}`);
   const [showCarreraModal, setShowCarreraModal] = useState(false);
   const [activeCareerIndex, setActiveCareerIndex] = useState(1);
   const [form, setForm] = useState({
@@ -25,6 +26,10 @@ export default function PublicPostulacionModal({ isOpen, onClose }) {
       axios.get('http://localhost:8000/api/public/carreras')
         .then(res => setCarrerasDb(res.data))
         .catch(err => console.error("Error fetching carreras:", err));
+        
+      axios.get('http://localhost:8000/api/public/gestion-activa')
+        .then(res => setActiveCupName(res.data.cup))
+        .catch(err => console.error("Error fetching gestion activa:", err));
     } else {
       setForm({
         apellidos: '', nombre: '', ci: '', procedencia: '', genero: '', telf1: '', telf2: '', correo: '',
@@ -276,8 +281,8 @@ export default function PublicPostulacionModal({ isOpen, onClose }) {
             {/* Encabezado Institucional */}
             <div className="mb-8 text-black">
               <h1 className="text-3xl font-bold tracking-tight mb-1">UAGRM</h1>
-              <h2 className="text-2xl font-bold tracking-tight mb-1">CUP {currentYear}</h2>
-              <h3 className="text-lg font-bold tracking-tight uppercase">FAC. CS. DE LA COMPUTACIÓN Y TELECOMUNICACIONES</h3>
+              <h2 className="text-2xl font-bold tracking-tight mb-1">{activeCupName}</h2>
+              <h3 className="text-lg font-bold tracking-tight uppercase">FACULTAD DE INGENIERIA EN CIENCIAS DE LA COMPUTACIÓN Y TELECOMUNICACIONES</h3>
             </div>
 
             {/* SECCIÓN 1 */}

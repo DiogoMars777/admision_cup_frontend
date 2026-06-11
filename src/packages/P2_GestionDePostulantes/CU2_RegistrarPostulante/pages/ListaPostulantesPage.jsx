@@ -64,7 +64,7 @@ export default function ListaPostulantesPage() {
     setForm({
       ci: postulante.ci || '',
       nombre: postulante.nombre,
-      email: postulante.email || '',
+      email: postulante.correo || '',
       fecha_nac: postulante.fecha_nac || '',
       sexo: postulante.sexo || '',
       telefono: postulante.telefono || '',
@@ -142,6 +142,7 @@ export default function ListaPostulantesPage() {
                   <th className="px-6 py-4 font-medium">Postulante</th>
                   <th className="px-6 py-4 font-medium">Documento</th>
                   <th className="px-6 py-4 font-medium">Contacto</th>
+                  <th className="px-6 py-4 font-medium">Correo</th>
                   <th className="px-6 py-4 font-medium">Colegio</th>
                   <th className="px-6 py-4 font-medium text-right">Acciones</th>
                 </tr>
@@ -156,8 +157,11 @@ export default function ListaPostulantesPage() {
                     <td className="px-6 py-4 text-sm text-gray-600 font-mono">
                       {postulante.ci}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {postulante.telefono || 'Sin teléfono'}
+                    <td className="px-6 py-4">
+                      <p className="text-sm font-medium text-gray-800">{postulante.telefono || 'Sin teléfono'}</p>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-blue-600">
+                      {postulante.correo || <span className="italic text-gray-400">Sin correo</span>}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
                       {postulante.colegio || 'No especificado'}
