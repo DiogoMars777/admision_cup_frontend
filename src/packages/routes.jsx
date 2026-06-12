@@ -34,6 +34,9 @@ const DocenteGruposPage = lazy(() => import('./P3_GestionAcademicaBase/CU7_Gesti
 const DocentePerfilPage = lazy(() => import('./P3_GestionAcademicaBase/CU7_GestionarDocentes/pages/DocentePerfilPage'));
 const DocenteAsistenciaPage = lazy(() => import('./P3_GestionAcademicaBase/CU7_GestionarDocentes/pages/DocenteAsistenciaPage'));
 
+// Herramientas
+const CargaMasivaPage = lazy(() => import('./Herramientas/pages/CargaMasivaPage'));
+
 // Inteligencia Artificial
 const ReportesPage = lazy(() => import('./Reportes/pages/ReportesPage'));
 
@@ -75,6 +78,7 @@ export default function SeguridadAccesoRoutes() {
           <Route path="/p3/docentes" element={<DocentesPage />} />
           <Route path="/p3/grupos" element={<GruposPage />} />
           <Route path="/p3/aulas" element={<AulasPage />} />
+          <Route path="/p3/carga-masiva" element={<CargaMasivaPage />} />
           <Route path="/docente/dashboard" element={<InicioDocentePage />} />
           <Route path="/docente/materias" element={<DocenteMateriasPage />} />
           <Route path="/docente/grupos" element={<DocenteGruposPage />} />

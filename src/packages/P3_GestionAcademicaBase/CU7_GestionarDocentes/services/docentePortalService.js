@@ -43,8 +43,58 @@ const getMateriasHabilitadas = async () => {
   }
 };
 
+const getHistorialAsistencia = async (grupoMateriaId) => {
+  try {
+    const response = await api.get(`/docente-portal/grupos/${grupoMateriaId}/asistencias`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+const createAsistencia = async (grupoMateriaId, payload) => {
+  try {
+    const response = await api.post(`/docente-portal/grupos/${grupoMateriaId}/asistencias`, payload);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+const getDetalleAsistencia = async (asistenciaId) => {
+  try {
+    const response = await api.get(`/docente-portal/asistencias/${asistenciaId}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+const updateAsistencia = async (asistenciaId, payload) => {
+  try {
+    const response = await api.put(`/docente-portal/asistencias/${asistenciaId}`, payload);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+const deleteAsistencia = async (asistenciaId) => {
+  try {
+    const response = await api.delete(`/docente-portal/asistencias/${asistenciaId}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const docentePortalService = {
   getDashboardData,
   getEstudiantesPorGrupo,
-  getMateriasHabilitadas
+  getMateriasHabilitadas,
+  getHistorialAsistencia,
+  createAsistencia,
+  getDetalleAsistencia,
+  updateAsistencia,
+  deleteAsistencia
 };

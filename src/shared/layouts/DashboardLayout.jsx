@@ -90,6 +90,9 @@ export default function DashboardLayout() {
       { name: 'Grupos', icon: UsersRound, path: '/p3/grupos' },
       { name: 'Aulas', icon: School, path: '/p3/aulas' }
     ]},
+    { section: 'HERRAMIENTAS', items: [
+      { name: 'Carga Masiva', icon: FileCheck, path: '/p3/carga-masiva' }
+    ]},
     { section: 'INTELIGENCIA ARTIFICIAL', items: [
       { name: 'Reportes IA', icon: PieChart, path: '/reportes' }
     ]}
@@ -113,6 +116,7 @@ export default function DashboardLayout() {
       '/p3/docentes': 'Docentes',
       '/p3/grupos': 'Grupos',
       '/p3/aulas': 'Aulas',
+      '/p3/carga-masiva': 'Carga Masiva (Excel)',
       '/docente/dashboard': 'Inicio',
       '/docente/grupos': 'Mis Grupos',
       '/docente/materias': 'Materias Habilitadas',

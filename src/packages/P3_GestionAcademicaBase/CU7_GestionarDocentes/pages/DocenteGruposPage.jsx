@@ -140,6 +140,7 @@ export default function DocenteGruposPage() {
             <thead>
               <tr className="bg-gray-50/80 text-gray-600 text-sm border-b border-gray-200">
                 <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs">Estudiante</th>
+                <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs text-center">Carnet (CI)</th>
                 <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs text-center">Nota 1</th>
                 <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs text-center">Nota 2</th>
                 <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs text-center">Nota 3</th>
@@ -162,6 +163,7 @@ export default function DocenteGruposPage() {
                         <span className="font-semibold text-gray-800">{est.nombre}</span>
                       </div>
                     </td>
+                    <td className="px-6 py-4 text-center font-medium text-gray-500">{est.ci}</td>
                     <td className="px-6 py-4 text-center font-medium text-gray-600">{est.nota1}</td>
                     <td className="px-6 py-4 text-center font-medium text-gray-600">{est.nota2}</td>
                     <td className="px-6 py-4 text-center font-medium text-gray-600">{est.nota3}</td>
