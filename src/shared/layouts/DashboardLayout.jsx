@@ -24,7 +24,12 @@ export default function DashboardLayout() {
   useEffect(() => {
     if (location.pathname === '/dashboard') {
       if (userRole === 'Docente') {
-        navigate('/docente/dashboard', { replace: true });
+        const hasActiveGestion = user?.has_active_gestion ?? true;
+        if (hasActiveGestion) {
+            navigate('/docente/dashboard', { replace: true });
+        } else {
+            navigate('/docente/perfil', { replace: true });
+        }
       } else if (userRole === 'Postulante') {
         navigate('/postulante/mi-grupo', { replace: true });
       }
@@ -51,12 +56,17 @@ export default function DashboardLayout() {
   const isActive = (path) => location.pathname === path || (path !== '/dashboard' && location.pathname.startsWith(path));
   const isActiveItem = (item) => isActive(item.path) || (item.extraPaths || []).includes(location.pathname);
 
+  const hasActiveGestion = user?.has_active_gestion ?? true;
+
   const menuItems = userRole === 'Docente' ? [
-    { section: 'DOCENTE', items: [
+    { section: 'DOCENTE', items: hasActiveGestion ? [
       { name: 'Inicio', icon: LayoutDashboard, path: '/docente/dashboard' },
       { name: 'Mis Grupos', icon: UsersRound, path: '/docente/grupos' },
       { name: 'Materias', icon: BookOpen, path: '/docente/materias' },
       { name: 'Asistencia', icon: FileCheck, path: '/docente/asistencia' },
+      { name: 'Perfil', icon: UserPlus, path: '/docente/perfil' }
+    ] : [
+      { name: 'Materias', icon: BookOpen, path: '/docente/materias' },
       { name: 'Perfil', icon: UserPlus, path: '/docente/perfil' }
     ]}
   ] : userRole === 'Postulante' ? [

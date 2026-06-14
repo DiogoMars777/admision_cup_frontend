@@ -113,7 +113,7 @@ export default function PostulanteDocentePage() {
       setEditMode(false);
     } catch (error) {
       console.error("Error saving reqs", error);
-      toast.error('Error al guardar validaciones');
+      // toast.error('Error al guardar validaciones'); (Manejado globalmente)
     } finally {
       setSaving(false);
     }
@@ -132,7 +132,7 @@ export default function PostulanteDocentePage() {
       await loadMaterias(selectedAspirante.id);
       fetchAspirantes();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Error al postular');
+      // toast.error(error.response?.data?.message || 'Error al postular'); (Manejado globalmente)
     }
   };
 
@@ -149,7 +149,7 @@ export default function PostulanteDocentePage() {
       setIsEditingAspirante(false);
       fetchAspirantes();
     } catch (error) {
-      toast.error(error.response?.data?.message || (isEditingAspirante ? 'Error al actualizar' : 'Error al crear'));
+      // toast.error(error.response?.data?.message || (isEditingAspirante ? 'Error al actualizar' : 'Error al crear') (Manejado globalmente));
     }
   };
 
@@ -176,7 +176,7 @@ export default function PostulanteDocentePage() {
         await aspiranteDocenteService.delete(id);
         fetchAspirantes();
       } catch (error) {
-        toast.error(error.response?.data?.message || 'Error al eliminar');
+        // toast.error(error.response?.data?.message || 'Error al eliminar'); (Manejado globalmente)
       }
     }
   };
@@ -185,11 +185,11 @@ export default function PostulanteDocentePage() {
     if(window.confirm('¿Desea aprobar y convertir a este aspirante en Docente oficial?\n\nSe realizará lo siguiente:\n• Se verificarán los requisitos automáticamente\n• Se creará un usuario con contraseña = su carnet de identidad\n• Se asignará el rol Docente\n• Se le enviará un correo con sus credenciales y materias')) {
       try {
         const response = await aspiranteDocenteService.convertirADocente(selectedAspirante.id);
-        toast.success(`¡Conversión exitosa!\n\n• ${response.materias_aprobadas} materia(s) aprobadas\n• Usuario: ${response.email}\n• Contraseña: Su carnet (CI)\n• Correo enviado con credenciales`);
+        // toast.success(`¡Conversión exitosa!\n\n• ${response.materias_aprobadas} materia(s) (Manejado globalmente) aprobadas\n• Usuario: ${response.email}\n• Contraseña: Su carnet (CI)\n• Correo enviado con credenciales`);
         setSelectedAspirante(null);
         fetchAspirantes();
       } catch (error) {
-        toast.error(error.response?.data?.message || 'Error al convertir');
+        // toast.error(error.response?.data?.message || 'Error al convertir'); (Manejado globalmente)
       }
     }
   };

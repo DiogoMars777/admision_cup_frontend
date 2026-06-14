@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, CalendarDays, FileText, Users, Clock, ClipboardCheck, Info, CheckCircle2, AlertTriangle, Play, Save, UsersRound, School, BookOpen, UserCheck, Download, Printer, FilterX, Calculator, Beaker, Terminal, Globe, Plus, Minus, Repeat, RefreshCw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import gestionAcademicaService from '../services/gestionAcademicaService';
 import GestionAcademicaDocentesTab from './GestionAcademicaDocentesTab';
+import GestionAcademicaPostulantesTab from './GestionAcademicaPostulantesTab';
 
 export default function GestionAcademicaDetailPage({ gestion, onBack }) {
   const [activeTab, setActiveTab] = useState('Grupos');
@@ -69,6 +73,7 @@ export default function GestionAcademicaDetailPage({ gestion, onBack }) {
 
       {/* Tab Content */}
       <div className="pt-2">
+        {activeTab === 'Resumen' && <ResumenTab gestion={gestion} />}
         {activeTab === 'Grupos' && <GruposTab gestion={gestion} />}
         {activeTab === 'Evaluaciones' && <EvaluacionesTab gestion={gestion} />}
         {activeTab === 'Horarios' && <HorariosTab gestion={gestion} />}
@@ -76,9 +81,7 @@ export default function GestionAcademicaDetailPage({ gestion, onBack }) {
           <GestionAcademicaDocentesTab gestionId={gestion.id} />
         )}
         {activeTab === 'Postulantes' && (
-          <div className="p-8 text-center text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-            Contenido de la pestaña Postulantes en construcción...
-          </div>
+          <GestionAcademicaPostulantesTab gestionId={gestion.id} />
         )}
       </div>
     </div>
@@ -364,10 +367,9 @@ function EvaluacionesTab({ gestion }) {
     }
     try {
       await gestionAcademicaService.updateEvaluacion(gestion.id, { nombre_eva, fecha });
-      toast.success("Fecha actualizada correctamente.");
       fetchEvaluaciones(gestion.id);
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Error al guardar');
+      // El error ya es manejado por el interceptor global
     }
   };
 
@@ -430,6 +432,11 @@ function HorariosTab({ gestion }) {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const [filtroTurno, setFiltroTurno] = useState('Todos');
+  const [filtroGrupo, setFiltroGrupo] = useState('Todos');
+  const [filtroMateria, setFiltroMateria] = useState('Todas');
+  const [filtroDocente, setFiltroDocente] = useState('Todos');
+  const [filtroAula, setFiltroAula] = useState('Todas');
+  
   const [diaActivo, setDiaActivo] = useState('Lunes');
 
   useEffect(() => {
@@ -489,12 +496,24 @@ function HorariosTab({ gestion }) {
   // Render variables
   const horariosAMostrar = simulacion || data.horarios_guardados || [];
   
+  // Listas dinámicas para los selects
+  const allGrupos = Array.from(new Set(horariosAMostrar.map(h => h.grupo_nombre))).sort();
+  const allMaterias = Array.from(new Set(horariosAMostrar.map(h => h.materia_nombre))).sort();
+  const allDocentes = Array.from(new Set(horariosAMostrar.filter(h=>h.docente_nombre).map(h => h.docente_nombre))).sort();
+  const allAulas = Array.from(new Set(horariosAMostrar.filter(h=>h.aula_nro).map(h => h.aula_nro))).sort();
+
   // Agrupar por grupo para la tabla (solo si hay horarios)
-  // Filtraremos por turno si está seleccionado uno
   let gruposUnicos = [];
   let bloquesDeTiempo = [];
   if (horariosAMostrar.length > 0) {
-    const horariosDelDia = horariosAMostrar.filter(h => h.dia === diaActivo && (filtroTurno === 'Todos' || h.turno === filtroTurno));
+    const horariosDelDia = horariosAMostrar.filter(h => 
+      h.dia === diaActivo && 
+      (filtroTurno === 'Todos' || h.turno === filtroTurno) &&
+      (filtroGrupo === 'Todos' || h.grupo_nombre === filtroGrupo) &&
+      (filtroMateria === 'Todas' || h.materia_nombre === filtroMateria) &&
+      (filtroDocente === 'Todos' || h.docente_nombre === filtroDocente) &&
+      (filtroAula === 'Todas' || h.aula_nro === filtroAula)
+    );
     const gruposSet = new Set();
     const bloquesSet = new Set();
     
@@ -513,6 +532,89 @@ function HorariosTab({ gestion }) {
       h.grupo_nombre === grupo && 
       `${h.hora_ini} - ${h.hora_fin}` === bloque
     );
+  };
+
+  const handleExportExcel = () => {
+    if (gruposUnicos.length === 0 || bloquesDeTiempo.length === 0) return;
+
+    const aoa = [];
+    const header = ['Grupo / Hora', ...bloquesDeTiempo];
+    aoa.push([`Día: ${diaActivo} - Turno: ${filtroTurno}`]);
+    aoa.push([]); // fila vacía
+    aoa.push(header);
+
+    gruposUnicos.forEach(g => {
+        const row = [g];
+        bloquesDeTiempo.forEach(b => {
+            const celda = getCellData(g, b);
+            if (celda) {
+                row.push(`${celda.materia_nombre}\n${celda.docente_nombre || 'Sin docente'}\n${celda.aula_nro || 'Sin aula'}`);
+            } else {
+                row.push('');
+            }
+        });
+        aoa.push(row);
+    });
+
+    const worksheet = XLSX.utils.aoa_to_sheet(aoa);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, diaActivo);
+
+    const wscols = [{wch: 15}, ...bloquesDeTiempo.map(() => ({wch: 30}))];
+    worksheet['!cols'] = wscols;
+
+    XLSX.writeFile(workbook, `Horario_Filtrado_${diaActivo}_${gestion.nombre.replace(/\s+/g, '_')}.xlsx`);
+  };
+
+  const handlePrint = () => {
+    if (gruposUnicos.length === 0 || bloquesDeTiempo.length === 0) return;
+
+    let html = `
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th { background-color: #f3f4f6; color: #1f2937; }
+        .materia { font-weight: bold; font-size: 13px; margin-bottom: 3px; color: #1e40af; }
+        .docente { color: #4b5563; font-size: 11px; }
+        .aula { font-size: 11px; color: #6b7280; font-weight: bold; margin-top: 2px; }
+        .header { margin-bottom: 20px; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; }
+        .grupo { font-weight: bold; color: #1f2937; background-color: #f9fafb; text-align: left; padding-left: 10px; }
+      </style>
+      <div class="header">
+        <h2 style="margin:0 0 5px 0;">Horario: ${gestion.nombre}</h2>
+        <p style="margin:0;color:#4b5563;"><strong>Día:</strong> ${diaActivo} | <strong>Turno Filtro:</strong> ${filtroTurno}</p>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align: left; padding-left: 10px;">Grupo / Hora</th>
+            ${bloquesDeTiempo.map(b => `<th>${b}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${gruposUnicos.map(g => `
+            <tr>
+              <td class="grupo">${g}</td>
+              ${bloquesDeTiempo.map(b => {
+                const celda = getCellData(g, b);
+                if(!celda) return '<td></td>';
+                return `<td>
+                  <div class="materia">${celda.materia_nombre}</div>
+                  <div class="docente">${celda.docente_nombre || 'Sin docente'}</div>
+                  <div class="aula">${celda.aula_nro || 'Sin aula'}</div>
+                </td>`;
+              }).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+    const win = window.open('', '', 'width=1000,height=700');
+    win.document.write('<html><head><title>Imprimir Horario</title></head><body>' + html + '</body></html>');
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); win.close(); }, 250);
   };
 
   const getMateriaIcon = (materia) => {
@@ -593,21 +695,58 @@ function HorariosTab({ gestion }) {
         </div>
         <div className="flex-1 min-w-[150px]">
           <label className="block text-xs font-semibold text-gray-600 mb-1">Grupo</label>
-          <select className="w-full border-gray-200 rounded-lg text-sm focus:ring-blue-500"><option>Todos</option></select>
+          <select 
+            className="w-full border-gray-200 rounded-lg text-sm focus:ring-blue-500"
+            value={filtroGrupo}
+            onChange={(e) => setFiltroGrupo(e.target.value)}
+          >
+            <option value="Todos">Todos</option>
+            {allGrupos.map(g => <option key={g} value={g}>{g}</option>)}
+          </select>
         </div>
         <div className="flex-1 min-w-[150px]">
           <label className="block text-xs font-semibold text-gray-600 mb-1">Materia</label>
-          <select className="w-full border-gray-200 rounded-lg text-sm focus:ring-blue-500"><option>Todas</option></select>
+          <select 
+            className="w-full border-gray-200 rounded-lg text-sm focus:ring-blue-500"
+            value={filtroMateria}
+            onChange={(e) => setFiltroMateria(e.target.value)}
+          >
+            <option value="Todas">Todas</option>
+            {allMaterias.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
         </div>
         <div className="flex-1 min-w-[150px]">
           <label className="block text-xs font-semibold text-gray-600 mb-1">Docente</label>
-          <select className="w-full border-gray-200 rounded-lg text-sm focus:ring-blue-500"><option>Todos</option></select>
+          <select 
+            className="w-full border-gray-200 rounded-lg text-sm focus:ring-blue-500"
+            value={filtroDocente}
+            onChange={(e) => setFiltroDocente(e.target.value)}
+          >
+            <option value="Todos">Todos</option>
+            {allDocentes.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
         </div>
         <div className="flex-1 min-w-[150px]">
           <label className="block text-xs font-semibold text-gray-600 mb-1">Aula</label>
-          <select className="w-full border-gray-200 rounded-lg text-sm focus:ring-blue-500"><option>Todas</option></select>
+          <select 
+            className="w-full border-gray-200 rounded-lg text-sm focus:ring-blue-500"
+            value={filtroAula}
+            onChange={(e) => setFiltroAula(e.target.value)}
+          >
+            <option value="Todas">Todas</option>
+            {allAulas.map(a => <option key={a} value={a}>{a}</option>)}
+          </select>
         </div>
-        <button className="px-4 py-2 bg-gray-50 border border-gray-200 text-gray-600 text-sm font-semibold rounded-lg hover:bg-gray-100 flex items-center gap-2">
+        <button 
+          onClick={() => {
+            setFiltroTurno('Todos');
+            setFiltroGrupo('Todos');
+            setFiltroMateria('Todas');
+            setFiltroDocente('Todos');
+            setFiltroAula('Todas');
+          }}
+          className="px-4 py-2 bg-gray-50 border border-gray-200 text-gray-600 text-sm font-semibold rounded-lg hover:bg-gray-100 flex items-center gap-2"
+        >
           <FilterX className="w-4 h-4"/> Limpiar filtros
         </button>
       </div>
@@ -628,13 +767,17 @@ function HorariosTab({ gestion }) {
         >
           <CheckCircle2 className="w-4 h-4"/> Generar horarios
         </button>
-        <button className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 shadow-sm transition-colors">
-          <RefreshCw className="w-4 h-4"/> Reasignar docente
+        
+        <button 
+          onClick={handleExportExcel}
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 shadow-sm transition-colors ml-auto"
+        >
+          <Download className="w-4 h-4"/> Exportar Excel
         </button>
-        <button className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 shadow-sm transition-colors ml-auto">
-          <Download className="w-4 h-4"/> Exportar PDF
-        </button>
-        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 shadow-sm transition-colors">
+        <button 
+          onClick={handlePrint}
+          className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 shadow-sm transition-colors"
+        >
           <Printer className="w-4 h-4"/> Imprimir
         </button>
       </div>
@@ -732,6 +875,300 @@ function HorariosTab({ gestion }) {
         <div className="flex gap-2 items-center text-sm text-blue-800 mt-2">
           <Info className="w-4 h-4 shrink-0"/>
           El horario se genera automáticamente con distribución intercalada para optimizar la asignación de docentes y aulas sin conflictos de horario.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ResumenTab({ gestion }) {
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(null);
+  const [isAssigning, setIsAssigning] = useState(false);
+  const [expandedCarrera, setExpandedCarrera] = useState(null);
+
+  useEffect(() => {
+    loadData();
+  }, [gestion.id]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const res = await gestionAcademicaService.getResumenAdmision(gestion.id);
+      setData(res);
+    } catch (e) {
+      console.error(e);
+      toast.error('Error al cargar el resumen de admisión');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAsignar = async () => {
+    if (!window.confirm("¿Estás seguro de ejecutar la asignación a carreras? Esta operación calculará el promedio y acomodará a los estudiantes basados en sus notas y cupos disponibles.")) return;
+    try {
+      setIsAssigning(true);
+      await gestionAcademicaService.asignarCarreras(gestion.id);
+      await loadData();
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Error al asignar carreras');
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
+  const handleExportPDF = () => {
+    if (!data?.resultados) return;
+    
+    const doc = new jsPDF();
+    doc.text(`Resultados de Admisión - ${gestion.nombre}`, 14, 15);
+    
+    let y = 25;
+    data.resultados.forEach(carrera => {
+      doc.setFontSize(12);
+      doc.text(`${carrera.carrera} (${carrera.alumnos.length} admitidos)`, 14, y);
+      y += 5;
+      
+      const tableData = carrera.alumnos.map((a, i) => [
+        i + 1,
+        a.ci,
+        a.nombre,
+        `${a.promedio} pts`
+      ]);
+      
+      autoTable(doc, {
+        startY: y,
+        head: [['N°', 'Carnet', 'Nombre Completo', 'Promedio Final']],
+        body: tableData,
+        theme: 'striped',
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [79, 70, 229] }
+      });
+      
+      y = doc.lastAutoTable.finalY + 10;
+      if (y > 270) {
+        doc.addPage();
+        y = 15;
+      }
+    });
+    
+    doc.save(`Admision_${gestion.nombre.replace(/\s+/g, '_')}.pdf`);
+  };
+
+  const handleExportExcel = () => {
+    if (!data?.resultados) return;
+    
+    const wb = XLSX.utils.book_new();
+    
+    data.resultados.forEach(carrera => {
+      const sheetData = [
+        ['N°', 'Carnet', 'Nombre Completo', 'Promedio Final']
+      ];
+      
+      carrera.alumnos.forEach((a, i) => {
+        sheetData.push([
+          i + 1,
+          a.ci,
+          a.nombre,
+          a.promedio
+        ]);
+      });
+      
+      const ws = XLSX.utils.aoa_to_sheet(sheetData);
+      ws['!cols'] = [{ wch: 5 }, { wch: 15 }, { wch: 40 }, { wch: 15 }];
+      
+      let sheetName = carrera.carrera.substring(0, 31).replace(/[\\/?*[\]]/g, '');
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    });
+    
+    XLSX.writeFile(wb, `Admision_${gestion.nombre.replace(/\s+/g, '_')}.xlsx`);
+  };
+
+  const toggleExpand = (id) => {
+    setExpandedCarrera(expandedCarrera === id ? null : id);
+  };
+
+  if (loading) return <div className="p-8 text-center text-gray-500">Cargando resumen de admisión...</div>;
+  if (!data) return null;
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-300">
+      
+      <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+            <Calculator className="w-6 h-6 text-indigo-600" />
+            Asignación Final a Carreras
+          </h3>
+          <p className="text-sm text-gray-500 mt-1">
+            Módulo inteligente para asignación meritocrática según notas y prioridades.
+          </p>
+        </div>
+        
+        {!data.ya_asignados && (
+          <button 
+            onClick={handleAsignar}
+            disabled={isAssigning}
+            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 shadow-sm transition-colors disabled:opacity-50"
+          >
+            {isAssigning ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Calculator className="w-5 h-5" />}
+            {isAssigning ? 'Procesando...' : 'Asignar a Carreras Automáticamente'}
+          </button>
+        )}
+      </div>
+
+      {data.ya_asignados && (
+        <div className="p-4 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200 flex justify-between items-center">
+          <div className="flex gap-3 items-center">
+            <CheckCircle2 className="w-6 h-6 shrink-0" />
+            <div>
+              <p className="font-bold">¡Asignación Completada Exitosamente!</p>
+              <p className="text-sm">Todos los postulantes aprobados ya fueron distribuidos en sus carreras.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={handleExportExcel}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-green-700 border border-green-200 hover:bg-green-100 rounded-lg text-sm font-bold transition-colors shadow-sm"
+              title="Descargar Excel"
+            >
+              <Download className="w-4 h-4" /> Excel
+            </button>
+            <button 
+              onClick={handleExportPDF}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-red-600 border border-red-200 hover:bg-red-50 rounded-lg text-sm font-bold transition-colors shadow-sm"
+              title="Descargar PDF"
+            >
+              <Printer className="w-4 h-4" /> PDF
+            </button>
+            <div className="w-px h-6 bg-emerald-200 mx-1"></div>
+            <button 
+              onClick={handleAsignar}
+              disabled={isAssigning}
+              className="text-emerald-700 text-sm font-bold hover:underline flex gap-1 items-center"
+            >
+              Re-calcular
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tarjetas de Estadística de Excluidos */}
+      {data.ya_asignados && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-white p-4 rounded-xl border border-red-100 flex items-center gap-4 shadow-sm">
+            <div className="p-3 bg-red-100 rounded-full text-red-600">
+              <AlertTriangle className="w-6 h-6"/>
+            </div>
+            <div>
+              <h4 className="text-xl font-bold text-gray-800">{data.stats?.reprobados || 0}</h4>
+              <p className="text-sm text-gray-500 font-semibold">Reprobados (&lt; 60 en alguna materia)</p>
+            </div>
+          </div>
+          <div className="bg-white p-4 rounded-xl border border-orange-100 flex items-center gap-4 shadow-sm">
+            <div className="p-3 bg-orange-100 rounded-full text-orange-600">
+              <UsersRound className="w-6 h-6"/>
+            </div>
+            <div>
+              <h4 className="text-xl font-bold text-gray-800">{data.stats?.sin_cupo || 0}</h4>
+              <p className="text-sm text-gray-500 font-semibold">Aprobados sin cupo</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lista por Carreras */}
+      {data.ya_asignados && (
+        <div className="space-y-4">
+          <h4 className="font-bold text-gray-700 uppercase tracking-wider text-sm mt-4">Resultados de la asignación por carrera</h4>
+          
+          {data.resultados.map((res) => {
+            const isExpanded = expandedCarrera === res.id_carrera;
+            const porcentaje = Math.round((res.inscritos / res.cupo_maximo) * 100) || 0;
+            
+            return (
+              <div key={res.id_carrera} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div 
+                  className="p-5 flex flex-wrap justify-between items-center cursor-pointer hover:bg-gray-50 transition-colors"
+                  onClick={() => toggleExpand(res.id_carrera)}
+                >
+                  <div className="flex items-center gap-4 flex-1">
+                    <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+                      <School className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-lg text-gray-800">{res.carrera}</h4>
+                      <p className="text-sm text-gray-500 font-semibold mt-0.5">Cupos Totales: {res.cupo_maximo}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-8">
+                    <div className="text-right">
+                      <p className="font-black text-indigo-600 text-2xl">{res.inscritos}</p>
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Admitidos</p>
+                    </div>
+                    
+                    <div className="w-32">
+                      <div className="flex justify-between text-xs mb-1 font-semibold text-gray-600">
+                        <span>Ocupación</span>
+                        <span>{porcentaje}%</span>
+                      </div>
+                      <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                        <div 
+                          className={`h-full rounded-full transition-all duration-500 ${porcentaje >= 100 ? 'bg-red-500' : 'bg-emerald-500'}`} 
+                          style={{width: `${Math.min(porcentaje, 100)}%`}}
+                        ></div>
+                      </div>
+                    </div>
+
+                    <div className="text-gray-400 bg-gray-100 p-2 rounded-full">
+                      {isExpanded ? <Minus className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+                    </div>
+                  </div>
+                </div>
+
+                {isExpanded && (
+                  <div className="border-t border-gray-100 bg-gray-50/50 p-4">
+                    {res.alumnos.length > 0 ? (
+                      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+                        <table className="w-full text-left">
+                          <thead>
+                            <tr className="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider border-b border-gray-200">
+                              <th className="px-5 py-4 font-bold">N°</th>
+                              <th className="px-5 py-4 font-bold">Carnet (CI)</th>
+                              <th className="px-5 py-4 font-bold">Nombre Completo del Postulante</th>
+                              <th className="px-5 py-4 font-bold text-right">Promedio Final</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {res.alumnos.map((alum, idx) => (
+                              <tr key={alum.id} className="hover:bg-blue-50/30 transition-colors">
+                                <td className="px-5 py-4 text-sm text-gray-500 font-mono">{idx + 1}</td>
+                                <td className="px-5 py-4 text-sm font-semibold text-gray-700">{alum.ci}</td>
+                                <td className="px-5 py-4 text-sm font-bold text-gray-900">
+                                  {alum.nombre}
+                                </td>
+                                <td className="px-5 py-4 text-right">
+                                  <span className="inline-flex items-center px-3 py-1 rounded-lg text-sm font-black bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm">
+                                    {alum.promedio} pts.
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 bg-white rounded-xl border border-dashed border-gray-300">
+                        <School className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                        <p className="text-sm text-gray-500 font-medium">Ningún alumno ha sido asignado a esta carrera.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

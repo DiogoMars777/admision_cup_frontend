@@ -27,6 +27,7 @@ export default function GestionAcademicaDocentesTab({ gestionId }) {
 
   const [loading, setLoading] = useState(true);
   const [procesando, setProcesando] = useState(false);
+  const [isAutoAssigning, setIsAutoAssigning] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -133,6 +134,21 @@ export default function GestionAcademicaDocentesTab({ gestionId }) {
     }
   };
 
+  const handleAsignacionAutomatica = async () => {
+    if (!window.confirm('¿Está seguro de ejecutar la asignación automática? Esto asignará docentes a todas las materias pendientes siguiendo las reglas establecidas.')) return;
+    
+    setIsAutoAssigning(true);
+    try {
+      const { data } = await axios.post(`${API}/gestiones-academicas/${gestionId}/asignaciones-docentes/automatica`, {}, { headers: getHeaders() });
+      toast.success(data.message || 'Asignación automática exitosa');
+      fetchData();
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Error en asignación automática');
+    } finally {
+      setIsAutoAssigning(false);
+    }
+  };
+
   if (loading) return <div className="p-12 text-center text-gray-500">Cargando datos...</div>;
 
   return (
@@ -185,7 +201,7 @@ export default function GestionAcademicaDocentesTab({ gestionId }) {
                 >
                   <option value="">Seleccione grupo...</option>
                   {grupos.map(g => (
-                    <option key={g.id} value={g.id}>{g.nombre} - {g.turno}</option>
+                    <option key={g.id} value={g.id}>{g.nombre} - {g.turno} ({g.modalidad})</option>
                   ))}
                 </select>
               </div>
@@ -257,24 +273,51 @@ export default function GestionAcademicaDocentesTab({ gestionId }) {
                   ))}
                 </select>
               </div>
-              <button
-                onClick={handleAsignar}
-                disabled={!selectedDocente || procesando}
-                className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold py-2 px-6 rounded-lg transition-colors flex items-center justify-center h-10 shadow-sm"
-              >
-                {procesando ? 'Asignando...' : 'Asignar docente'}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleAsignacionAutomatica}
+                  disabled={isAutoAssigning || procesando}
+                  className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center justify-center h-10 shadow-sm"
+                  title="Asignar automáticamente todos los docentes posibles a las materias pendientes"
+                >
+                  {isAutoAssigning ? 'Procesando...' : 'Asignación Automática'}
+                </button>
+                <button
+                  onClick={handleAsignar}
+                  disabled={!selectedDocente || procesando || isAutoAssigning}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold py-2 px-6 rounded-lg transition-colors flex items-center justify-center h-10 shadow-sm"
+                >
+                  {procesando ? 'Asignando...' : 'Asignar docente'}
+                </button>
+              </div>
             </div>
           </div>
+        </div>
+
+        {/* Paneles Informativos Laterales (Información) */}
+        <div className="space-y-4">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <h3 className="flex items-center gap-2 font-bold text-blue-700 mb-3">
+              <Info className="w-5 h-5" /> Información
+            </h3>
+            <div className="space-y-3 text-sm text-gray-600">
+              <p>Primero seleccione el grupo y luego la materia del grupo.</p>
+              <p>La información de aula, día, hora y modalidad se muestra automáticamente porque ya está configurada.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Asignaciones actuales a ancho completo */}
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="p-4 border-b border-gray-100 bg-gray-50/50">
               <h3 className="font-bold text-gray-800">Asignaciones actuales</h3>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-auto max-h-[500px]">
               <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="text-[11px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100 bg-white">
+                <thead className="sticky top-0 bg-white z-10 shadow-sm">
+                  <tr className="text-[11px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">
                     <th className="px-4 py-3">Grupo</th>
                     <th className="px-4 py-3">Materia</th>
                     <th className="px-4 py-3">Docente</th>
@@ -338,49 +381,6 @@ export default function GestionAcademicaDocentesTab({ gestionId }) {
               Mostrando {asignaciones.length} asignaciones
             </div>
           </div>
-        </div>
-
-        {/* Paneles Informativos Laterales */}
-        <div className="space-y-4">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-            <h3 className="flex items-center gap-2 font-bold text-blue-700 mb-4">
-              <Info className="w-5 h-5" /> Reglas importantes
-            </h3>
-            <ul className="space-y-3 text-sm text-gray-600">
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span>Solo se asignan docentes a materias ya programadas.</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span>El docente debe estar habilitado para la materia.</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span>Un docente puede tener máximo 4 materias asignadas.</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span>No debe existir cruce de horario para el docente.</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span>Una materia del grupo no puede tener más de un docente activo.</span>
-              </li>
-            </ul>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-            <h3 className="flex items-center gap-2 font-bold text-blue-700 mb-3">
-              <Info className="w-5 h-5" /> Información
-            </h3>
-            <div className="space-y-3 text-sm text-gray-600">
-              <p>Primero seleccione el grupo y luego la materia del grupo.</p>
-              <p>La información de aula, día, hora y modalidad se muestra automáticamente porque ya está configurada.</p>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

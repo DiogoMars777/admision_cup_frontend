@@ -60,7 +60,7 @@ export default function DocentesPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead><tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
-                <th className="px-6 py-4 font-medium">Docente</th><th className="px-6 py-4 font-medium">CI</th><th className="px-6 py-4 font-medium">Teléfono</th><th className="px-6 py-4 font-medium">Grado Académico</th><th className="px-6 py-4 font-medium">Experiencia</th><th className="px-6 py-4 font-medium text-right">Acciones</th>
+                <th className="px-6 py-4 font-medium">Docente</th><th className="px-6 py-4 font-medium">CI</th><th className="px-6 py-4 font-medium">Correo</th><th className="px-6 py-4 font-medium">Teléfono</th><th className="px-6 py-4 font-medium">Grado Académico</th><th className="px-6 py-4 font-medium">Experiencia</th><th className="px-6 py-4 font-medium text-right">Acciones</th>
               </tr></thead>
               <tbody className="divide-y divide-gray-100">
                 {items.map(item => (
@@ -72,6 +72,7 @@ export default function DocentesPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600 font-mono">{item.ci}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{item.email || '-'}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{item.telefono || '-'}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{item.grado_academico || '-'}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{item.experiencia_docente ? `${item.experiencia_docente} años` : '-'}</td>
@@ -83,7 +84,7 @@ export default function DocentesPage() {
                     </td>
                   </tr>
                 ))}
-                {items.length === 0 && <tr><td colSpan="6" className="px-6 py-8 text-center text-gray-500 text-sm">Sin registros.</td></tr>}
+                {items.length === 0 && <tr><td colSpan="7" className="px-6 py-8 text-center text-gray-500 text-sm">Sin registros.</td></tr>}
               </tbody>
             </table>
           </div>

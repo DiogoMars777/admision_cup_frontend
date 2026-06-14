@@ -71,7 +71,7 @@ export default function UsuariosPage() {
       setShowModal(false);
       fetchUsuarios();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Error al guardar el usuario');
+      // toast.error(error.response?.data?.message || 'Error al guardar el usuario'); (Manejado globalmente)
     }
   };
 

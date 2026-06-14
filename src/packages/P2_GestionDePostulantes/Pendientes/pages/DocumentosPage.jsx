@@ -184,12 +184,7 @@ export default function DocumentosPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div className="flex gap-2">
-            <button className="flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-              <Filter className="h-4 w-4 mr-2" />
-              Más Filtros
-            </button>
-          </div>
+
         </div>
 
         {loading ? (

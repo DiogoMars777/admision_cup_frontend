@@ -1,6 +1,8 @@
+import { applyGlobalInterceptor } from '../../../../utils/apiInterceptor.js';
 import axios from 'axios';
 
 const api = axios.create({ baseURL: 'http://localhost:8000/api', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' } });
+applyGlobalInterceptor(api);
 api.interceptors.request.use((c) => { const t = localStorage.getItem('token'); if (t) c.headers.Authorization = `Bearer ${t}`; return c; });
 
 const gestionAcademicaService = {
@@ -65,6 +67,16 @@ const gestionAcademicaService = {
   updateEvaluacion: async (id, data) => {
     const response = await api.put(`/gestiones-academicas/${id}/evaluaciones`, data);
     return response.data;
+  },
+
+  getResumenAdmision: async (id) => {
+    const res = await api.get(`/gestiones-academicas/${id}/admision/resumen`);
+    return res.data;
+  },
+
+  asignarCarreras: async (id, data = {}) => {
+    const res = await api.post(`/gestiones-academicas/${id}/admision/asignar`, data);
+    return res.data;
   }
 };
 

@@ -74,10 +74,9 @@ export default function GestionAcademicaPage() {
     }
     try {
       await gestionAcademicaService.updateEvaluacion(selectedGestion.id, { nombre_eva, fecha });
-      toast.success("Fecha actualizada correctamente.");
       fetchEvaluaciones(selectedGestion.id);
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Error al guardar');
+      // Manejado por interceptor
     }
   };
 

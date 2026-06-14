@@ -23,7 +23,9 @@ export default function InicioDocentePage() {
       const data = await docentePortalService.getDashboardData(user.id);
       setDashboardData(data);
     } catch (e) {
-      toast.error('Error al cargar datos del portal docente');
+      if (e.response?.status !== 404) {
+        toast.error('Error al cargar datos del portal docente');
+      }
     } finally {
       setLoading(false);
     }
@@ -49,6 +51,20 @@ export default function InicioDocentePage() {
 
   if (!dashboardData) return null;
 
+  if (dashboardData.sin_gestion) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[70vh] animate-in fade-in duration-500">
+        <div className="bg-white p-10 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center text-center max-w-md">
+          <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6">
+            <Calendar className="w-10 h-10 text-gray-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">No hay gestión activa</h2>
+          <p className="text-gray-500">Actualmente no hay ninguna gestión académica en curso. Cuando se active un nuevo ciclo, tu portal mostrará tus grupos y horarios correspondientes.</p>
+        </div>
+      </div>
+    );
+  }
+
   const { stats, grupos, horario_semanal } = dashboardData;
   
   const getHorarioDeDia = (dia) => {
@@ -61,59 +77,6 @@ export default function InicioDocentePage() {
       <div>
         <h2 className="text-3xl font-bold text-gray-800">Panel Docente</h2>
         <p className="text-gray-500 mt-1">Gestiona tus grupos y estudiantes</p>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Total Estudiantes */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex justify-between items-center transition-transform hover:-translate-y-1">
-          <div>
-            <p className="text-sm font-medium text-gray-500">Total Estudiantes</p>
-            <p className="text-4xl font-bold text-gray-800 mt-2">{stats.total}</p>
-          </div>
-          <div className="w-14 h-14 bg-blue-800 rounded-2xl flex items-center justify-center text-white shadow-md shadow-blue-200">
-            <Users className="w-7 h-7" />
-          </div>
-        </div>
-
-        {/* Aprobados */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex justify-between items-center transition-transform hover:-translate-y-1">
-          <div>
-            <p className="text-sm font-medium text-gray-500">Aprobados</p>
-            <div className="flex items-baseline gap-2 mt-2">
-              <p className="text-4xl font-bold text-gray-800">{stats.aprobados}</p>
-              <p className="text-sm font-semibold text-emerald-500">{stats.aprobadosPerc}%</p>
-            </div>
-          </div>
-          <div className="w-14 h-14 bg-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-md shadow-emerald-200">
-            <UserCheck className="w-7 h-7" />
-          </div>
-        </div>
-
-        {/* Reprobados */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex justify-between items-center transition-transform hover:-translate-y-1">
-          <div>
-            <p className="text-sm font-medium text-gray-500">Reprobados</p>
-            <div className="flex items-baseline gap-2 mt-2">
-              <p className="text-4xl font-bold text-gray-800">{stats.reprobados}</p>
-              <p className="text-sm font-semibold text-red-500">{stats.reprobadosPerc}%</p>
-            </div>
-          </div>
-          <div className="w-14 h-14 bg-red-500 rounded-2xl flex items-center justify-center text-white shadow-md shadow-red-200">
-            <UserX className="w-7 h-7" />
-          </div>
-        </div>
-
-        {/* Asistencia */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex justify-between items-center transition-transform hover:-translate-y-1">
-          <div>
-            <p className="text-sm font-medium text-gray-500">Asistencia Promedio</p>
-            <p className="text-4xl font-bold text-gray-800 mt-2">{stats.asistencia}%</p>
-          </div>
-          <div className="w-14 h-14 bg-purple-600 rounded-2xl flex items-center justify-center text-white shadow-md shadow-purple-200">
-            <Calendar className="w-7 h-7" />
-          </div>
-        </div>
       </div>
 
       {/* Mis Grupos Asignados (Resumen) */}

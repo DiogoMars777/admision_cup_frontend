@@ -20,7 +20,7 @@ export default function ResetPasswordForm() {
     setErrorMsg('');
     try {
       await authService.resetPassword({ ...data, email, code });
-      toast.success('Contraseña actualizada correctamente');
+      // toast.success('Contraseña actualizada correctamente'); (Manejado globalmente)
       navigate('/');
     } catch (error) {
       console.error(error);

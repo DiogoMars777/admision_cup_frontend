@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Users, UserCheck, UserX, Clock, BookOpen, MapPin, ChevronRight, FileText, UsersRound } from 'lucide-react';
 import { docentePortalService } from '../services/docentePortalService';
 import toast from 'react-hot-toast';
@@ -9,6 +9,7 @@ export default function DocenteGruposPage() {
   const [grupos, setGrupos] = useState([]);
   const [estudiantes, setEstudiantes] = useState([]);
   const [loadingEstudiantes, setLoadingEstudiantes] = useState(false);
+  const tableRef = useRef(null);
 
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : { id: 1, nombre: 'Docente' };
@@ -40,6 +41,11 @@ export default function DocenteGruposPage() {
       setLoadingEstudiantes(true);
       const res = await docentePortalService.getEstudiantesPorGrupo(groupId);
       setEstudiantes(res.estudiantes || []);
+      
+      // Auto-scroll to table after a short delay to allow DOM render
+      setTimeout(() => {
+        tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
     } catch (e) {
       toast.error('Error al cargar estudiantes');
     } finally {
@@ -125,7 +131,7 @@ export default function DocenteGruposPage() {
 
       {/* Estudiantes Table */}
       {selectedGroup && (
-      <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden mt-8 transition-all">
+      <div ref={tableRef} className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden mt-8 transition-all scroll-mt-20">
         <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-gray-50 to-white">
           <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
             <UsersRound className="w-5 h-5 text-blue-600"/>

@@ -51,7 +51,7 @@ export default function RolesPage() {
       setShowModal(false);
       fetchData();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Error al guardar el rol');
+      // toast.error(error.response?.data?.message || 'Error al guardar el rol'); (Manejado globalmente)
     }
   };
 
@@ -61,7 +61,7 @@ export default function RolesPage() {
         await rolService.delete(id);
         fetchData();
       } catch (error) {
-        toast.error(error.response?.data?.message || 'Error al eliminar');
+        // toast.error(error.response?.data?.message || 'Error al eliminar'); (Manejado globalmente)
       }
     }
   };

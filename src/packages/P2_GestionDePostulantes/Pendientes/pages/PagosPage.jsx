@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Search, CheckCircle2, Clock, CreditCard, ShieldCheck, X, AlertCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import axios from 'axios';
+import Cards from 'react-credit-cards-2';
+import 'react-credit-cards-2/dist/es/styles-compiled.css';
 
 const API = 'http://localhost:8000/api';
 const getHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
@@ -13,10 +15,20 @@ export default function PagosPage() {
   const [selectedPostulante, setSelectedPostulante] = useState(null);
   const [procesandoPago, setProcesandoPago] = useState(false);
   
-  // Estados para simular PayPal
+  // Estados para simular Tarjeta de Crédito
+  const [cardNumber, setCardNumber] = useState('');
+  const [expiry, setExpiry] = useState('');
+  const [cvc, setCvc] = useState('');
+  const [cardName, setCardName] = useState('');
+  const [focus, setFocus] = useState('');
+  
   const [paypalStep, setPaypalStep] = useState(1);
   const [paypalEmail, setPaypalEmail] = useState('');
   const [paypalPassword, setPaypalPassword] = useState('');
+  
+  // Estados para el flujo interno de la tarjeta en PayPal
+  const [isAddingCard, setIsAddingCard] = useState(false);
+  const [isCardSaved, setIsCardSaved] = useState(false);
 
   useEffect(() => { fetchData(); }, []);
 
@@ -36,7 +48,7 @@ export default function PagosPage() {
     setProcesandoPago(true);
     try {
       await axios.post(`${API}/postulantes/${selectedPostulante.id}/pagar`, {}, { headers: getHeaders() });
-      toast.success('Pago procesado exitosamente vía PayPal.');
+      toast.success('Pago procesado exitosamente.');
       setSelectedPostulante(null);
       fetchData();
     } catch (e) {
@@ -186,9 +198,16 @@ export default function PagosPage() {
                           <button
                             onClick={() => {
                               setSelectedPostulante(p);
+                              setCardNumber('');
+                              setExpiry('');
+                              setCvc('');
+                              setCardName('');
+                              setFocus('');
                               setPaypalStep(1);
                               setPaypalEmail('');
                               setPaypalPassword('');
+                              setIsAddingCard(false);
+                              setIsCardSaved(false);
                             }}
                             className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-lg transition-colors shadow-sm shadow-green-600/20"
                           >
@@ -219,112 +238,258 @@ export default function PagosPage() {
         )}
       </div>
 
-      {/* PayPal Simulated Modal */}
+      {/* PayPal Realistic Modal */}
       {selectedPostulante && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
-            {/* Header PayPal */}
-            <div className="bg-[#003087] p-5 flex justify-between items-center text-white">
-              <div className="flex items-center gap-2">
-                {/* Logo simulado */}
-                <span className="font-bold text-xl italic tracking-tight">
-                  <span className="text-white">Pay</span><span className="text-[#0079C1]">Pal</span>
-                </span>
-                <span className="text-xs bg-[#001f5a] px-2 py-0.5 rounded text-white/80 border border-white/10">Sandbox</span>
-              </div>
-              <button onClick={() => setSelectedPostulante(null)} className="text-white/70 hover:text-white transition-colors">
-                <X className="w-5 h-5" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          
+          {paypalStep === 1 ? (
+            /* STEP 1: LOGIN PAYPAL */
+            <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 relative">
+              <button onClick={() => setSelectedPostulante(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
+                <X className="w-6 h-6" />
               </button>
-            </div>
-
-            {paypalStep === 1 ? (
-              /* Paso 1: Login de PayPal */
-              <div className="p-8 space-y-6">
-                <div className="text-center space-y-2">
-                  <h3 className="text-xl font-bold text-gray-800">Inicia sesión en PayPal</h3>
-                  <p className="text-sm text-gray-500">Paga a UAGRM CUP de forma segura</p>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <input
-                      type="email"
-                      placeholder="Correo electrónico"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0079C1] focus:border-[#0079C1] outline-none transition-all"
-                      value={paypalEmail}
-                      onChange={(e) => setPaypalEmail(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <input
-                      type="password"
-                      placeholder="Contraseña"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0079C1] focus:border-[#0079C1] outline-none transition-all"
-                      value={paypalPassword}
-                      onChange={(e) => setPaypalPassword(e.target.value)}
-                    />
+              <div className="p-10 space-y-7 flex flex-col items-center">
+                <span className="font-extrabold text-4xl italic tracking-tighter text-[#003087] mb-2">
+                  Pay<span className="text-[#0079C1]">Pal</span>
+                </span>
+                
+                <div className="w-full space-y-4">
+                  <input
+                    type="text"
+                    placeholder="Correo electrónico o número de celular"
+                    className="w-full px-4 py-3.5 border border-gray-400 rounded focus:ring-1 focus:ring-[#0079C1] focus:border-[#0079C1] outline-none transition-all text-base placeholder-gray-500"
+                    value={paypalEmail}
+                    onChange={(e) => setPaypalEmail(e.target.value)}
+                  />
+                  <input
+                    type="password"
+                    placeholder="Contraseña"
+                    className="w-full px-4 py-3.5 border border-gray-400 rounded focus:ring-1 focus:ring-[#0079C1] focus:border-[#0079C1] outline-none transition-all text-base placeholder-gray-500"
+                    value={paypalPassword}
+                    onChange={(e) => setPaypalPassword(e.target.value)}
+                  />
+                  <div className="text-left pt-1">
+                    <span className="text-[#0070ba] text-sm font-bold cursor-pointer hover:underline">¿Ha olvidado su contraseña?</span>
                   </div>
                 </div>
 
                 <button
                   onClick={() => {
-                    if(!paypalEmail || !paypalPassword) return toast.error('Ingresa credenciales de prueba');
+                    if(!paypalEmail || !paypalPassword) return toast.error('Ingrese sus credenciales');
                     setPaypalStep(2);
                   }}
-                  className="w-full py-3 bg-[#0079C1] hover:bg-[#005a8f] text-white font-bold rounded-full transition-colors shadow-lg shadow-[#0079C1]/30"
+                  className="w-full py-3 bg-[#0070ba] hover:bg-[#003087] text-white font-bold rounded-full transition-colors text-lg mt-2"
                 >
-                  Iniciar Sesión
+                  Iniciar sesión
                 </button>
-                <div className="text-center">
-                  <p className="text-xs text-gray-400">Esta es una pasarela simulada. Ingresa cualquier dato.</p>
-                </div>
-              </div>
-            ) : (
-              /* Paso 2: Confirmación de Pago */
-              <div className="p-8 space-y-6">
-                <div className="text-center">
-                  <p className="text-gray-500 text-sm">Hola, <span className="font-semibold text-gray-700">{paypalEmail}</span></p>
-                  <p className="text-3xl font-light text-gray-800 mt-2">$45.00 USD</p>
-                  <p className="text-xs text-gray-400 mt-1">Equivalente a Bs. 300.00</p>
+
+                <div className="w-full flex items-center gap-3 py-1">
+                  <div className="h-px bg-gray-300 flex-1"></div>
+                  <span className="text-gray-500 font-medium text-sm">o</span>
+                  <div className="h-px bg-gray-300 flex-1"></div>
                 </div>
 
-                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Pagar a:</span>
-                    <span className="font-semibold text-gray-800">UAGRM CUP</span>
+                <button className="w-full py-3 bg-white border-2 border-[#2c2e2f] text-[#2c2e2f] font-bold rounded-full hover:bg-gray-50 transition-colors text-lg">
+                  Registrarse
+                </button>
+                
+                <div className="text-xs text-gray-400 pt-2 text-center">
+                  Español | English | Français | 中文
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* STEP 2: AGREGAR TARJETA / PAGAR */
+            <div className="bg-[#f5f7fa] rounded-xl w-full max-w-md overflow-hidden shadow-2xl animate-in slide-in-from-right-8 duration-300 border border-gray-200 max-h-[95vh] flex flex-col">
+              {/* Header */}
+              <div className="bg-white p-5 border-b border-gray-200 flex justify-between items-center relative flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center">
+                    <ShieldCheck className="w-4 h-4 text-green-400" />
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Postulante:</span>
-                    <span className="font-medium text-gray-800">{selectedPostulante.nombre}</span>
+                  <span className="font-extrabold text-2xl italic tracking-tighter text-[#003087]">
+                    Pay<span className="text-[#0079C1]">Pal</span>
+                  </span>
+                </div>
+                <button onClick={() => setSelectedPostulante(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="p-5 md:p-6 space-y-4 overflow-y-auto">
+                
+                <div className="text-center space-y-1 pb-2">
+                  <h3 className="font-bold text-gray-900 text-lg">Configure una vez. Pague más rápido la próxima vez.</h3>
+                  <p className="text-sm text-gray-500 leading-tight">
+                    Guardaremos su elección para los pagos futuros a UAGRM CUP. Puede cambiarla en cualquier momento en la configuración de PayPal.
+                  </p>
+                </div>
+
+                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                  <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-white cursor-pointer" onClick={() => !isCardSaved && setIsAddingCard(true)}>
+                    <span className="font-bold text-gray-900 text-lg">Pagar con</span>
+                    <span className="text-gray-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-transform ${isAddingCard ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                      </svg>
+                    </span>
                   </div>
-                  <div className="flex justify-between border-t border-gray-200 pt-3">
-                    <span className="text-gray-500">Método de pago:</span>
-                    <span className="font-medium flex items-center gap-1 text-gray-800">
-                      <CreditCard className="w-4 h-4 text-[#0079C1]"/> Saldo PayPal
+
+                  {!isAddingCard && !isCardSaved && (
+                    <div className="p-4 flex items-center gap-3 cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => setIsAddingCard(true)}>
+                      <div className="text-[#0070ba]">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                      </div>
+                      <span className="text-gray-800 font-medium">Agregar tarjeta</span>
+                    </div>
+                  )}
+
+                  {isCardSaved && !isAddingCard && (
+                    <div className="p-4 flex items-center gap-3 bg-blue-50/50">
+                      <input type="radio" checked readOnly className="w-4 h-4 text-[#0070ba] focus:ring-[#0070ba]" />
+                      <div className="flex-1 flex flex-col">
+                        <span className="text-gray-900 font-semibold flex items-center gap-2">
+                          {cardNumber[0] === '4' ? 'Visa' : (cardNumber[0] === '5' ? 'Mastercard' : 'Tarjeta')} terminada en •••• {cardNumber.replace(/\s/g, '').slice(-4) || '1234'}
+                        </span>
+                        <span className="text-gray-500 text-xs">UAGRM CUP • $45.00 USD</span>
+                      </div>
+                      {cardNumber[0] === '4' && <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" className="h-4 object-contain" />}
+                      {cardNumber[0] === '5' && <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" className="h-5 object-contain" />}
+                    </div>
+                  )}
+
+                  {isAddingCard && (
+                    <div className="p-4 space-y-4 border-t border-gray-100 bg-gray-50/30">
+                      {/* Tarjeta Interactiva (Escalada para que no ocupe tanto espacio) */}
+                      <div className="flex justify-center -mt-8 -mb-6 transform scale-[0.70] sm:scale-[0.75] origin-center">
+                        <Cards
+                          number={cardNumber}
+                          expiry={expiry}
+                          cvc={cvc}
+                          name={cardName || 'TITULAR DE TARJETA'}
+                          focused={focus}
+                        />
+                      </div>
+
+                      {/* Formulario de Tarjeta */}
+                      <div className="space-y-3">
+                        <div>
+                          <input
+                            type="tel"
+                            maxLength="19"
+                            name="number"
+                            placeholder="Número de Tarjeta"
+                            className="w-full px-4 py-2.5 border border-gray-300 rounded focus:ring-1 focus:ring-[#0079C1] focus:border-[#0079C1] outline-none transition-all font-mono text-sm tracking-widest"
+                            value={cardNumber}
+                            onFocus={(e) => setFocus(e.target.name)}
+                            onChange={(e) => {
+                              let val = e.target.value.replace(/\D/g, '');
+                              setCardNumber(val);
+                            }}
+                          />
+                        </div>
+
+                        <div>
+                          <input
+                            type="text"
+                            name="name"
+                            placeholder="Nombre en la tarjeta"
+                            className="w-full px-4 py-2.5 border border-gray-300 rounded focus:ring-1 focus:ring-[#0079C1] focus:border-[#0079C1] outline-none transition-all uppercase text-sm font-medium"
+                            value={cardName}
+                            onFocus={(e) => setFocus(e.target.name)}
+                            onChange={(e) => setCardName(e.target.value)}
+                          />
+                        </div>
+
+                        <div className="flex gap-3">
+                          <div className="flex-1">
+                            <input
+                              type="tel"
+                              name="expiry"
+                              maxLength="5"
+                              placeholder="Vencimiento (MM/YY)"
+                              className="w-full px-4 py-2.5 border border-gray-300 rounded focus:ring-1 focus:ring-[#0079C1] focus:border-[#0079C1] outline-none transition-all font-mono text-sm tracking-widest text-center"
+                              value={expiry}
+                              onFocus={(e) => setFocus(e.target.name)}
+                              onChange={(e) => {
+                                let val = e.target.value.replace(/\D/g, '');
+                                if (val.length >= 2) val = val.substring(0,2) + '/' + val.substring(2,4);
+                                setExpiry(val);
+                              }}
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <input
+                              type="tel"
+                              name="cvc"
+                              maxLength="4"
+                              placeholder="CVC"
+                              className="w-full px-4 py-2.5 border border-gray-300 rounded focus:ring-1 focus:ring-[#0079C1] focus:border-[#0079C1] outline-none transition-all font-mono text-sm tracking-widest text-center"
+                              value={cvc}
+                              onFocus={(e) => setFocus(e.target.name)}
+                              onChange={(e) => setCvc(e.target.value.replace(/\D/g, ''))}
+                            />
+                          </div>
+                        </div>
+                        
+                        <button
+                          onClick={() => {
+                            if(!cardNumber || !expiry || !cvc || !cardName) {
+                              toast.error('Complete los datos de la tarjeta');
+                              return;
+                            }
+                            if(cardNumber.replace(/\s/g, '').length < 15) {
+                              toast.error('Número de tarjeta inválido');
+                              return;
+                            }
+                            setIsAddingCard(false);
+                            setIsCardSaved(true);
+                            toast.success('Tarjeta vinculada a su cuenta de PayPal');
+                          }}
+                          className="w-full py-2.5 bg-white border border-[#0070ba] text-[#0070ba] font-bold rounded-full hover:bg-blue-50 transition-colors text-sm mt-2"
+                        >
+                          Vincular Tarjeta
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  <p className="text-[13px] text-gray-800 text-center font-medium px-2">
+                    Consulte las <span className="text-[#0070ba] hover:underline cursor-pointer">políticas de PayPal</span> para conocer sus derechos sobre las formas de pago.
+                  </p>
+                  
+                  <button
+                    onClick={() => {
+                      if (!isCardSaved) {
+                        toast.error('Debe agregar y vincular una tarjeta primero');
+                        setIsAddingCard(true);
+                        return;
+                      }
+                      confirmarPago();
+                    }}
+                    disabled={procesandoPago}
+                    className="w-full py-3.5 bg-[#003087] hover:bg-[#001c53] text-white font-bold rounded-full flex items-center justify-center gap-2 transition-colors text-lg shadow-md disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {procesandoPago ? (
+                      <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Procesando...</>
+                    ) : (
+                      <>Aceptar y continuar</>
+                    )}
+                  </button>
+                  
+                  <div className="text-center pb-2">
+                    <span onClick={() => setPaypalStep(1)} className="text-[#0070ba] text-sm font-semibold hover:underline cursor-pointer">
+                      Volver a la selección de cuenta
                     </span>
                   </div>
                 </div>
-
-                <button
-                  onClick={confirmarPago}
-                  disabled={procesandoPago}
-                  className="w-full py-3 bg-[#0079C1] hover:bg-[#005a8f] text-white font-bold rounded-full flex items-center justify-center gap-2 transition-colors shadow-lg shadow-[#0079C1]/30 disabled:opacity-70 disabled:cursor-not-allowed"
-                >
-                  {procesandoPago ? (
-                    <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Procesando pago...</>
-                  ) : (
-                    'Pagar Ahora'
-                  )}
-                </button>
-                <button
-                  onClick={() => setPaypalStep(1)}
-                  className="w-full py-2 text-[#0079C1] font-semibold text-sm hover:underline"
-                >
-                  Cancelar y volver
-                </button>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
     </div>

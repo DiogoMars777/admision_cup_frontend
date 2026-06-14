@@ -317,7 +317,7 @@ export default function MiGrupoPage() {
               }`}>
                 {admision.estado === 'Aprobado' && <CheckCircle2 className="w-4 h-4" />}
                 {admision.estado === 'Reprobado' && <AlertCircle className="w-4 h-4" />}
-                {admision.estado === 'En Proceso' && <Loader2 className="w-4 h-4 animate-spin" />}
+                {admision.estado === 'En Proceso' && <Clock className="w-4 h-4" />}
                 {admision.estado.toUpperCase()}
               </div>
             </div>

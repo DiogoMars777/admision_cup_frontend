@@ -1,3 +1,4 @@
+import { applyGlobalInterceptor } from '../../../../utils/apiInterceptor.js';
 import axios from 'axios';
 
 const api = axios.create({
@@ -7,6 +8,7 @@ const api = axios.create({
     'Accept': 'application/json',
   },
 });
+applyGlobalInterceptor(api);
 
 export const authService = {
   login: async (credentials) => {

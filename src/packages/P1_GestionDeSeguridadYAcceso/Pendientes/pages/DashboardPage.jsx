@@ -43,6 +43,14 @@ export default function DashboardPage() {
     { name: 'Grupos', value: gruposTotal, icon: UsersRound, gradient: 'from-amber-500 to-amber-700', light: 'bg-amber-50 text-amber-700', path: '/p3/grupos' },
   ];
 
+  // Cálculos reales para el gráfico
+  const totalReal = statsData.usuarios_activos || 1;
+  const numAdmin = Math.max(0, totalReal - postulantesTotal - docentesTotal);
+  
+  const pctAdmin = Math.round((numAdmin / totalReal) * 100) || 0;
+  const pctPostulantes = Math.round((postulantesTotal / totalReal) * 100) || 0;
+  const pctDocentes = Math.round((docentesTotal / totalReal) * 100) || 0;
+
   const getActionColor = (accion) => {
     switch (accion) {
       case 'Crear': return 'bg-emerald-50 text-emerald-700';
@@ -121,11 +129,11 @@ export default function DashboardPage() {
               <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
                 <circle cx="18" cy="18" r="14" fill="none" stroke="#e5e7eb" strokeWidth="4" />
                 <circle cx="18" cy="18" r="14" fill="none" stroke="#0a4a8e" strokeWidth="4" 
-                  strokeDasharray="55 45" strokeDashoffset="0" strokeLinecap="round" />
+                  pathLength="100" strokeDasharray={`${pctAdmin} ${100 - pctAdmin}`} strokeDashoffset="0" strokeLinecap="round" />
                 <circle cx="18" cy="18" r="14" fill="none" stroke="#059669" strokeWidth="4" 
-                  strokeDasharray="25 75" strokeDashoffset="-55" strokeLinecap="round" />
+                  pathLength="100" strokeDasharray={`${pctPostulantes} ${100 - pctPostulantes}`} strokeDashoffset={`-${pctAdmin}`} strokeLinecap="round" />
                 <circle cx="18" cy="18" r="14" fill="none" stroke="#d97706" strokeWidth="4" 
-                  strokeDasharray="10 90" strokeDashoffset="-80" strokeLinecap="round" />
+                  pathLength="100" strokeDasharray={`${pctDocentes} ${100 - pctDocentes}`} strokeDashoffset={`-${pctAdmin + pctPostulantes}`} strokeLinecap="round" />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
@@ -142,21 +150,21 @@ export default function DashboardPage() {
                 <span className="w-2.5 h-2.5 rounded-full bg-[#0a4a8e]" />
                 <span className="text-xs text-gray-600">Administrativos</span>
               </div>
-              <span className="text-xs font-bold text-gray-800">55%</span>
+              <span className="text-xs font-bold text-gray-800">{pctAdmin}%</span>
             </div>
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
                 <span className="text-xs text-gray-600">Postulantes</span>
               </div>
-              <span className="text-xs font-bold text-gray-800">25%</span>
+              <span className="text-xs font-bold text-gray-800">{pctPostulantes}%</span>
             </div>
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
                 <span className="text-xs text-gray-600">Docentes</span>
               </div>
-              <span className="text-xs font-bold text-gray-800">10%</span>
+              <span className="text-xs font-bold text-gray-800">{pctDocentes}%</span>
             </div>
           </div>
         </div>

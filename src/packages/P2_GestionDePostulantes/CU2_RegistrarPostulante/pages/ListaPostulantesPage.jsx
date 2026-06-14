@@ -14,6 +14,10 @@ export default function ListaPostulantesPage() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   
+  // Modal para ver detalles
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedPostulante, setSelectedPostulante] = useState(null);
+  
   // Estado del formulario
   const [form, setForm] = useState({ 
     ci: '', nombre: '', email: '', fecha_nac: '', sexo: '', telefono: '', direccion: '', colegio: '',
@@ -21,8 +25,8 @@ export default function ListaPostulantesPage() {
   });
   const [showCarrera2, setShowCarrera2] = useState(false);
 
-  const carrerasDisponibles = ['Ingeniería de Sistemas', 'Ingeniería Informática', 'Medicina', 'Derecho', 'Arquitectura', 'Contaduría Pública'];
-  const modalidades = ['Presencial', 'Virtual', 'Semi-Presencial'];
+  const carrerasDisponibles = ['Ingenieria de Sistemas', 'Ingenieria Informatica', 'Ingenieria de Redes', 'Ingenieria Robotica'];
+  const modalidades = ['Presencial', 'Virtual'];
 
   useEffect(() => {
     fetchPostulantes();
@@ -60,6 +64,11 @@ export default function ListaPostulantesPage() {
     setShowModal(true);
   };
 
+  const openDetails = (postulante) => {
+    setSelectedPostulante(postulante);
+    setShowDetailsModal(true);
+  };
+
   const openEdit = (postulante) => {
     setEditing(postulante);
     setForm({
@@ -87,8 +96,10 @@ export default function ListaPostulantesPage() {
     try {
       if (editing) {
         await postulanteService.update(editing.id, form);
+        toast.success("Postulante actualizado correctamente");
       } else {
         await postulanteService.create(form);
+        toast.success("Postulante registrado correctamente");
       }
       setShowModal(false);
       fetchPostulantes();
@@ -127,10 +138,6 @@ export default function ListaPostulantesPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <button className="flex items-center text-gray-600 bg-gray-50 border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-100 text-sm font-medium transition-colors">
-            <Filter className="h-4 w-4 mr-2" />
-            Filtros
-          </button>
         </div>
 
         {loading ? (
@@ -169,7 +176,7 @@ export default function ListaPostulantesPage() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end space-x-2">
-                        <button onClick={() => navigate('/p2/documentos', { state: { autoOpenPostulanteId: postulante.id } })} className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors" title="Ver Documentos">
+                        <button onClick={() => openDetails(postulante)} className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors" title="Ver Detalles">
                           <Eye className="h-4 w-4" />
                         </button>
                         <button onClick={() => openEdit(postulante)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" title="Editar">
@@ -222,12 +229,10 @@ export default function ListaPostulantesPage() {
                 </div>
               </div>
 
-              {!editing && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico (Para creación de cuenta auto)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
                   <input required type="email" className="w-full border-gray-300 rounded-lg px-3 py-2 border sm:text-sm" placeholder="ejemplo@correo.com" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
                 </div>
-              )}
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
@@ -320,7 +325,6 @@ export default function ListaPostulantesPage() {
                             >
                               <option value="Presencial">Presencial (Por defecto)</option>
                               <option value="Virtual">Virtual</option>
-                              <option value="Semi-Presencial">Semi-Presencial</option>
                             </select>
                           </div>
                         </div>
@@ -474,6 +478,121 @@ export default function ListaPostulantesPage() {
             <div className="p-6 border-t border-gray-100 bg-gray-50 rounded-b-xl flex justify-end space-x-3 flex-shrink-0">
               <button type="button" onClick={() => setShowModal(false)} className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-xl transition-colors shadow-sm">Cancelar</button>
               <button type="submit" form="postulanteForm" className="px-5 py-2.5 text-sm font-bold text-white bg-primary hover:bg-primary-dark rounded-xl transition-colors shadow-sm">{editing ? 'Actualizar Postulante' : 'Guardar Postulante'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Detalles */}
+      {showDetailsModal && selectedPostulante && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full flex flex-col overflow-hidden">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <Info className="text-blue-600" />
+                Detalles del Postulante
+              </h3>
+              <button onClick={() => setShowDetailsModal(false)} className="text-gray-400 hover:text-gray-600">
+                ✕
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                
+                {/* Info Personal */}
+                <div>
+                  <h4 className="text-sm font-bold text-gray-800 border-b border-gray-200 pb-2 mb-4">Información Personal</h4>
+                  <ul className="space-y-3">
+                    <li className="flex flex-col">
+                      <span className="text-xs text-gray-500 font-semibold uppercase">Nombre Completo</span>
+                      <span className="text-sm text-gray-800 font-medium">{selectedPostulante.nombre}</span>
+                    </li>
+                    <li className="flex flex-col">
+                      <span className="text-xs text-gray-500 font-semibold uppercase">Carnet de Identidad</span>
+                      <span className="text-sm text-gray-800 font-mono">{selectedPostulante.ci}</span>
+                    </li>
+                    <li className="flex flex-col">
+                      <span className="text-xs text-gray-500 font-semibold uppercase">Correo Electrónico</span>
+                      <span className="text-sm text-blue-600">{selectedPostulante.correo || 'No especificado'}</span>
+                    </li>
+                    <li className="flex flex-col">
+                      <span className="text-xs text-gray-500 font-semibold uppercase">Teléfono</span>
+                      <span className="text-sm text-gray-800">{selectedPostulante.telefono || 'No especificado'}</span>
+                    </li>
+                    <li className="flex flex-col">
+                      <span className="text-xs text-gray-500 font-semibold uppercase">Fecha de Nacimiento</span>
+                      <span className="text-sm text-gray-800">{selectedPostulante.fecha_nac || 'No especificada'}</span>
+                    </li>
+                    <li className="flex flex-col">
+                      <span className="text-xs text-gray-500 font-semibold uppercase">Sexo</span>
+                      <span className="text-sm text-gray-800">{selectedPostulante.sexo === 'M' ? 'Masculino' : selectedPostulante.sexo === 'F' ? 'Femenino' : 'No especificado'}</span>
+                    </li>
+                    <li className="flex flex-col">
+                      <span className="text-xs text-gray-500 font-semibold uppercase">Dirección</span>
+                      <span className="text-sm text-gray-800">{selectedPostulante.direccion || 'No especificada'}</span>
+                    </li>
+                    <li className="flex flex-col">
+                      <span className="text-xs text-gray-500 font-semibold uppercase">Colegio de Egreso</span>
+                      <span className="text-sm text-gray-800">{selectedPostulante.colegio || 'No especificado'}</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Info Academica */}
+                <div>
+                  <h4 className="text-sm font-bold text-gray-800 border-b border-gray-200 pb-2 mb-4">Información Académica</h4>
+                  <ul className="space-y-4">
+                    <li className="flex flex-col">
+                      <span className="text-xs text-gray-500 font-semibold uppercase mb-1">Preferencia General</span>
+                      <div className="flex gap-2">
+                        <span className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded font-medium border border-gray-200">
+                          Turno: {selectedPostulante.turno_preferido || 'No definido'}
+                        </span>
+                        <span className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded font-medium border border-gray-200">
+                          Modalidad: {selectedPostulante.modalidad_preferida || 'No definida'}
+                        </span>
+                      </div>
+                    </li>
+                    
+                    <li className="bg-blue-50 border border-blue-100 p-3 rounded-lg">
+                      <span className="text-xs text-blue-800 font-bold uppercase mb-1 block">Opción de Carrera 1</span>
+                      <p className="text-sm text-gray-800 font-semibold">{selectedPostulante.carrera1 || 'Sin selección'}</p>
+                      {selectedPostulante.modalidad1 && (
+                        <p className="text-xs text-blue-600 mt-1">Modalidad: {selectedPostulante.modalidad1}</p>
+                      )}
+                    </li>
+
+                    {selectedPostulante.carrera2 && (
+                      <li className="bg-emerald-50 border border-emerald-100 p-3 rounded-lg">
+                        <span className="text-xs text-emerald-800 font-bold uppercase mb-1 block">Opción de Carrera 2</span>
+                        <p className="text-sm text-gray-800 font-semibold">{selectedPostulante.carrera2}</p>
+                        {selectedPostulante.modalidad2 && (
+                          <p className="text-xs text-emerald-600 mt-1">Modalidad: {selectedPostulante.modalidad2}</p>
+                        )}
+                      </li>
+                    )}
+
+                    {selectedPostulante.grupo_asignado && (
+                      <li className="bg-purple-50 border border-purple-100 p-3 rounded-lg mt-4">
+                        <span className="text-xs text-purple-800 font-bold uppercase mb-1 block">Asignación de Grupo (Oficial)</span>
+                        <p className="text-sm text-gray-800 font-semibold mb-1">
+                          Grupo: {selectedPostulante.grupo_asignado}
+                        </p>
+                        <p className="text-xs text-purple-700">
+                          Gestión: {selectedPostulante.gestion_asignada}
+                        </p>
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+              <button onClick={() => setShowDetailsModal(false)} className="px-5 py-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 rounded-lg text-sm font-medium transition-colors shadow-sm">
+                Cerrar
+              </button>
             </div>
           </div>
         </div>

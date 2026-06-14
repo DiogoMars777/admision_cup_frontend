@@ -9,13 +9,13 @@ export default function CargaMasivaPage() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [result, setResult] = useState(null);
 
-  const [activeTab, setActiveTab] = useState('postulantes');
-
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
       setFile(e.target.files[0]);
       setResult(null);
     }
+    // Reiniciar el valor del input para permitir seleccionar el mismo archivo consecutivamente
+    e.target.value = null;
   };
 
   const handleUpload = async () => {
@@ -30,9 +30,7 @@ export default function CargaMasivaPage() {
     try {
       setIsUploading(true);
       const token = localStorage.getItem('token');
-      const endpoint = activeTab === 'postulantes' 
-        ? 'http://localhost:8000/api/carga-masiva/postulantes'
-        : 'http://localhost:8000/api/carga-masiva/notas';
+      const endpoint = 'http://localhost:8000/api/carga-masiva/notas';
         
       const response = await axios.post(endpoint, formData, {
         headers: {
@@ -64,7 +62,7 @@ export default function CargaMasivaPage() {
     try {
       setIsDownloading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:8000/api/carga-masiva/plantilla-${activeTab}`, {
+      const response = await axios.get(`http://localhost:8000/api/carga-masiva/plantilla-notas`, {
         headers: {
           'Authorization': `Bearer ${token}`
         },
@@ -75,7 +73,7 @@ export default function CargaMasivaPage() {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `Plantilla_${activeTab === 'postulantes' ? 'Postulantes' : 'Notas'}.xlsx`);
+      link.setAttribute('download', `Plantilla_Notas.xlsx`);
       document.body.appendChild(link);
       link.click();
       
@@ -96,37 +94,18 @@ export default function CargaMasivaPage() {
       <div>
         <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
           <UploadCloud className="w-8 h-8 text-blue-600" />
-          Carga Masiva de Postulantes
+          Carga Masiva de Notas
         </h2>
         <p className="text-gray-500 mt-2 text-lg">
-          Sube un archivo Excel para registrar múltiples postulantes a la vez en el sistema.
+          Sube un archivo Excel para registrar las calificaciones de múltiples postulantes a la vez en el sistema.
         </p>
-      </div>
-
-      <div className="flex gap-4 border-b border-gray-200">
-        <button
-          onClick={() => { setActiveTab('postulantes'); setFile(null); setResult(null); }}
-          className={`px-6 py-3 font-bold border-b-2 transition-colors ${
-            activeTab === 'postulantes' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Carga de Postulantes
-        </button>
-        <button
-          onClick={() => { setActiveTab('notas'); setFile(null); setResult(null); }}
-          className={`px-6 py-3 font-bold border-b-2 transition-colors ${
-            activeTab === 'notas' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Carga de Notas
-        </button>
       </div>
 
       <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
         <div className="flex justify-between items-center mb-8 border-b border-gray-100 pb-6">
           <div>
             <h3 className="text-xl font-bold text-gray-800">1. Descargar Plantilla</h3>
-            <p className="text-gray-500 text-sm mt-1">Utiliza esta plantilla para asegurar el formato correcto de {activeTab}.</p>
+            <p className="text-gray-500 text-sm mt-1">Utiliza esta plantilla para asegurar el formato correcto de las notas.</p>
           </div>
           <button 
             onClick={handleDownloadTemplate}
